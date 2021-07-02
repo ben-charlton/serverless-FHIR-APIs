@@ -1,4 +1,4 @@
-from . import element
+from . import element, identifier
 
 class Reference(element.Element):
 
