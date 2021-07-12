@@ -6,7 +6,7 @@ A serverless solution for the management of questionnaire resources based on the
 
 Currently, there is support for the following API's under the FHIR specification;
 - POST API : Support creation of Questionnaire Resource and store it internally for tracking administrations.
- ''' POST [BaseURL]/Questionnaire/ - Submit payload (body) of Questionnaire in JSON format. '''
+ '''bash POST [BaseURL]/Questionnaire/ - Submit payload (body) of Questionnaire in JSON format. '''
 
 
 ### Installing required modules
