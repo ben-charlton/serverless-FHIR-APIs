@@ -7,12 +7,7 @@ class CodeableConcept(element.Element):
     def __init__(self, jsondict=None, strict=True):
         
         self.coding = None
-        """ Code defined by a terminology system.
-        List of `Coding` items (represented as `dict` in JSON). """
-        
         self.text = None
-        """ Plain text representation of the concept.
-        Type `str`. """
         
         super(CodeableConcept, self).__init__(jsondict=jsondict, strict=strict)
     

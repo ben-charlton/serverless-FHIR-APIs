@@ -7,12 +7,7 @@ class ContactDetail(element.Element):
     def __init__(self, jsondict=None, strict=True):
         
         self.name = None
-        """ Name of an individual to contact.
-        Type `str`. """
-        
         self.telecom = None
-        """ Contact details for individual or organization.
-        List of `ContactPoint` items (represented as `dict` in JSON). """
         
         super(ContactDetail, self).__init__(jsondict=jsondict, strict=strict)
     

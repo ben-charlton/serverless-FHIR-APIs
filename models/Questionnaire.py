@@ -1,261 +1,116 @@
-from . import backboneelement, element, coding, contactdetail, fhirdate, period, reference
-class Questionnaire():
+from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, Date, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, Session
+import urllib
+import pyodbc
+from encoder import QuestionnaireEncoder
+
+BaseModel = declarative_base(name='BaseModel')
+
+class Questionnaire(BaseModel):
+    __tablename__ = "Questionnaire"
+    id = Column(String(450), primary_key=True) #450 needed because wont let primary key be max varchar
+    name = Column(String)
+    url = Column(String)
+    title = Column(String)
+    #item = relationship('QuestionnaireItem', lazy = True)
     
-    resource_type = "Questionnaire"
-    
-    def __init__(self, jsondict=None, strict=True):
-        
-        self.approvalDate = None
-        """ When the questionnaire was approved by publisher.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
-        self.code = None
-        """ Concept that represents the overall questionnaire.
-        List of `Coding` items (represented as `dict` in JSON). """
-        
-        self.contact = None
-        """ Contact details for the publisher.
-        List of `ContactDetail` items (represented as `dict` in JSON). """
-        
-        self.copyright = None
-        """ Use and/or publishing restrictions.
-        Type `str`. """
-        
-        self.date = None
-        """ Date last changed.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
-        self.derivedFrom = None
-        """ Instantiates protocol or definition.
-        List of `str` items. """
-        
-        self.description = None
-        """ Natural language description of the questionnaire.
-        Type `str`. """
-        
-        self.effectivePeriod = None
-        """ When the questionnaire is expected to be used.
-        Type `Period` (represented as `dict` in JSON). """
-        
-        self.experimental = None
-        """ For testing purposes, not real usage.
-        Type `bool`. """
-        
-        self.identifier = None
-        """ Additional identifier for the questionnaire.
-        List of `Identifier` items (represented as `dict` in JSON). """
-        
-        self.item = None
-        """ Questions and sections within the Questionnaire.
-        List of `QuestionnaireItem` items (represented as `dict` in JSON). """
-        
-        self.jurisdiction = None
-        """ Intended jurisdiction for questionnaire (if applicable).
-        List of `CodeableConcept` items (represented as `dict` in JSON). """
-        
-        self.lastReviewDate = None
-        """ When the questionnaire was last reviewed.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
+    def __init__(self):
+        self.id = None 
         self.name = None
-        """ Name for this questionnaire (computer friendly).
-        Type `str`. """
-        
-        self.publisher = None
-        """ Name of the publisher (organization or individual).
-        Type `str`. """
-        
-        self.purpose = None
-        """ Why this questionnaire is defined.
-        Type `str`. """
-        
-        self.status = None
-        """ draft | active | retired | unknown.
-        Type `str`. """
-        
-        self.subjectType = None
-        """ Resource that can be subject of QuestionnaireResponse.
-        List of `str` items. """
-        
-        self.title = None
-        """ Name for this questionnaire (human friendly).
-        Type `str`. """
-        
         self.url = None
-        """ Canonical identifier for this questionnaire, represented as a URI
-        (globally unique).
-        Type `str`. """
-        
-        self.useContext = None
-        """ The context that the content is intended to support.
-        List of `UsageContext` items (represented as `dict` in JSON). """
-        
-        self.version = None
-        """ Business version of the questionnaire.
-        Type `str`. """
-        
-        super(Questionnaire, self).__init__(jsondict=jsondict, strict=strict)
-    
-    def elementProperties(self):
-        js = super(Questionnaire, self).elementProperties()
-        js.extend([
-            ("approvalDate", "approvalDate", fhirdate.FHIRDate, False, None, False),
-            ("code", "code", coding.Coding, True, None, False),
-            ("contact", "contact", contactdetail.ContactDetail, True, None, False),
-            ("copyright", "copyright", str, False, None, False),
-            ("date", "date", fhirdate.FHIRDate, False, None, False),
-            ("derivedFrom", "derivedFrom", str, True, None, False),
-            ("description", "description", str, False, None, False),
-            ("effectivePeriod", "effectivePeriod", period.Period, False, None, False),
-            ("experimental", "experimental", bool, False, None, False),
-            ("identifier", "identifier", identifier.Identifier, True, None, False),
-            ("item", "item", QuestionnaireItem, True, None, False),
-            ("lastReviewDate", "lastReviewDate", fhirdate.FHIRDate, False, None, False),
-            ("name", "name", str, False, None, False),
-            ("publisher", "publisher", str, False, None, False),
-            ("purpose", "purpose", str, False, None, False),
-            ("status", "status", str, False, None, True),
-            ("subjectType", "subjectType", str, True, None, False),
-            ("title", "title", str, False, None, False),
-            ("url", "url", str, False, None, False),
-            ("version", "version", str, False, None, False),
-        ])
-        return js
+        self.title = None 
+        #self.item = None # list of QuestionnaireItem items represented as dict in JSON
 
-class QuestionnaireItem(backboneelement.BackboneElement):
-    """ Questions and sections within the Questionnaire.
-    
-    A particular question, question grouping or display text that is part of
-    the questionnaire.
-    """
-    
-    resource_type = "QuestionnaireItem"
-    
-    def __init__(self, jsondict=None, strict=True):
-        
-        self.answerOption = None
-        """ Permitted answer.
-        List of `QuestionnaireItemAnswerOption` items (represented as `dict` in JSON). """
-        
-        self.answerValueSet = None
-        """ Valueset containing permitted answers.
-        Type `str`. """
-        
-        self.code = None
-        """ Corresponding concept for this item in a terminology.
-        List of `Coding` items (represented as `dict` in JSON). """
-        
-        self.definition = None
-        """ ElementDefinition - details for the item.
-        Type `str`. """
-        
-        self.enableBehavior = None
-        """ all | any.
-        Type `str`. """
-        
-        self.item = None
-        """ Nested questionnaire items.
-        List of `QuestionnaireItem` items (represented as `dict` in JSON). """
-        
-        self.linkId = None
-        """ Unique id for item in questionnaire.
-        Type `str`. """
-        
-        self.maxLength = None
-        """ No more than this many characters.
-        Type `int`. """
-        
-        self.prefix = None
-        """ E.g. "1(a)", "2.5.3".
-        Type `str`. """
-        
-        self.readOnly = None
-        """ Don't allow human editing.
-        Type `bool`. """
-        
-        self.repeats = None
-        """ Whether the item may repeat.
-        Type `bool`. """
-        
-        self.required = None
-        """ Whether the item must be included in data results.
-        Type `bool`. """
-        
-        self.text = None
-        """ Primary text for the item.
-        Type `str`. """
-        
-        self.type = None
-        """ group | display | boolean | decimal | integer | date | dateTime +.
-        Type `str`. """
-        
-        super(QuestionnaireItem, self).__init__(jsondict=jsondict, strict=strict)
-    
-    def elementProperties(self):
-        js = super(QuestionnaireItem, self).elementProperties()
-        js.extend([
-            ("answerOption", "answerOption", QuestionnaireItemAnswerOption, True, None, False),
-            ("answerValueSet", "answerValueSet", str, False, None, False),
-            ("code", "code", coding.Coding, True, None, False),
-            ("definition", "definition", str, False, None, False),
-            ("enableBehavior", "enableBehavior", str, False, None, False),
-            ("item", "item", QuestionnaireItem, True, None, False),
-            ("linkId", "linkId", str, False, None, True),
-            ("maxLength", "maxLength", int, False, None, False),
-            ("prefix", "prefix", str, False, None, False),
-            ("readOnly", "readOnly", bool, False, None, False),
-            ("repeats", "repeats", bool, False, None, False),
-            ("required", "required", bool, False, None, False),
-            ("text", "text", str, False, None, False),
-            ("type", "type", str, False, None, True),
-        ])
-        return js
 
-class QuestionnaireItemAnswerOption(backboneelement.BackboneElement):
-    
-    resource_type = "QuestionnaireItemAnswerOption"
-    
-    def __init__(self, jsondict=None, strict=True):
+    def update_with_json(self, json_dict):
+        for key in json_dict:
+            setattr(self, key, json_dict[key])
+        return
 
-        self.initialSelected = None
-        """ Whether option is selected by default.
-        Type `bool`. """
-        
-        self.valueCoding = None
-        """ Answer value.
-        Type `Coding` (represented as `dict` in JSON). """
-        
-        self.valueDate = None
-        """ Answer value.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
-        self.valueInteger = None
-        """ Answer value.
-        Type `int`. """
-        
-        self.valueReference = None
-        """ Answer value.
-        Type `FHIRReference` (represented as `dict` in JSON). """
-        
-        self.valueString = None
-        """ Answer value.
-        Type `str`. """
-        
-        self.valueTime = None
-        """ Answer value.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
-        super(QuestionnaireItemAnswerOption, self).__init__(jsondict=jsondict, strict=strict)
+    def to_json(self):
+        return QuestionnaireEncoder().encode(self)
+
+    def save(self):
+        connect_str = self.get_conn_string()
+        try: 
+            engine = create_engine(connect_str)
+            BaseModel.metadata.create_all(engine)
+            session = Session(engine)
+            session.begin()
+            session.add(self)
+            session.commit()
+            session.close()
+            return True
+        except:
+            return False
     
-    def elementProperties(self):
-        js = super(QuestionnaireItemAnswerOption, self).elementProperties()
-        js.extend([
-            ("initialSelected", "initialSelected", bool, False, None, False),
-            ("valueCoding", "valueCoding", coding.Coding, False, "value", True),
-            ("valueDate", "valueDate", fhirdate.FHIRDate, False, "value", True),
-            ("valueInteger", "valueInteger", int, False, "value", True),
-            ("valueReference", "valueReference", reference.Reference, False, "value", True),
-            ("valueString", "valueString", str, False, "value", True),
-            ("valueTime", "valueTime", fhirdate.FHIRDate, False, "value", True),
-        ])
-        return js
+
+    def load(self, parameter, value):
+        connect_str = self.get_conn_string()
+        try:
+            engine = create_engine(connect_str)
+            session = Session(engine)
+            retrieved_questionnaire = session.query(Questionnaire).filter_by(parameter=value).one()
+            retrieved_json = retrieved_questionnaire.to_json
+            return retrieved_json
+        except:
+            return None
+
+    def get_conn_string(self):
+        server = "tcp:fhir-questionnaire-server.database.windows.net"
+        database = "questionnaire-database"
+        username = "bencharlton"
+        password = "Benazure123"
+        driver = '{ODBC Driver 17 for SQL Server}'
+        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
+        connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
+        return connect_str
+
+# class QuestionnaireItem(BaseModel):
+#     __tablename__ = "QuestionnaireItem"
+#     id = Column(String, primary_key=True)
+#     questionnaire_id = Column(Integer, ForeignKey('Questionnaire.id'))
+#     linkId = Column(String)
+#     text = Column(String)
+#     enable_when = relationship("QuestionnaireItemEnableWhen", back_populates="item", uselist=False)
+
+#     def __init__(self):
+#         self.id = None
+#         self.questionnaire_id = None
+#         self.linkId = None
+#         self.text = None
+        #self.enable_when = None # list represented in JSON as Dict
+
+
+# class QuestionnaireItemEnableWhen(BaseModel):
+#     __tablename__ = "QuestionnaireItemEnableWhen"
+#     id = Column(Integer)
+#     item = relationship("QuestionnaireItem", back_populates="enable_when")
+#     question = Column(String)
+#     operator = Column(String)
+
+#     def __init__(self):
+#         self.id = None
+#         self.item = None
+#         self.question = None
+#         self.operator = None
+
+# class QuestionnaireItemAnswerOption(BaseModel):
+    # __tablename__ = "QuestionnaireItemAnswer"
+    # id = Column(Integer)
+    # answerBoolean = Column(Boolean)
+    # answerDecimal = Column(Float)
+    # valueInteger = Column(Integer)
+    # answerDate = Column(Date)
+    # answerDateTime = Column(DateTime)
+    # answerString = Column(String)
+
+    # def __init__(self):
+    #     self.id = None
+    #     self.answerBoolean = None
+    #     self.answerDecimal = None
+    #     self.valueInteger = None
+    #     self.answerDate = None
+    #     self.answerDateTime = None
+    #     self.answerString = None

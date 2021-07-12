@@ -7,24 +7,10 @@ class Coding(element.Element):
     def __init__(self, jsondict=None, strict=True):
         
         self.code = None
-        """ Symbol in syntax defined by the system.
-        Type `str`. """
-        
         self.display = None
-        """ Representation defined by the system.
-        Type `str`. """
-        
         self.system = None
-        """ Identity of the terminology system.
-        Type `str`. """
-        
         self.userSelected = None
-        """ If this coding was chosen directly by the user.
-        Type `bool`. """
-        
         self.version = None
-        """ Version of the system - if relevant.
-        Type `str`. """
         
         super(Coding, self).__init__(jsondict=jsondict, strict=strict)
     

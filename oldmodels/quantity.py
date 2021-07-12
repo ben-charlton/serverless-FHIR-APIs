@@ -7,24 +7,10 @@ class Quantity(element.Element):
     def __init__(self, jsondict=None, strict=True):
         
         self.code = None
-        """ Coded form of the unit.
-        Type `str`. """
-        
         self.comparator = None
-        """ < | <= | >= | > - how to understand the value.
-        Type `str`. """
-        
         self.system = None
-        """ System that defines coded unit form.
-        Type `str`. """
-        
         self.unit = None
-        """ Unit representation.
-        Type `str`. """
-        
         self.value = None
-        """ Numerical value (with implicit precision).
-        Type `float`. """
         
         super(Quantity, self).__init__(jsondict=jsondict, strict=strict)
     

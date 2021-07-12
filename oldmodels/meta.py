@@ -7,28 +7,11 @@ class Meta(element.Element):
     def __init__(self, jsondict=None, strict=True):
         
         self.lastUpdated = None
-        """ When the resource version last changed.
-        Type `FHIRDate` (represented as `str` in JSON). """
-        
         self.profile = None
-        """ Profiles this resource claims to conform to.
-        List of `str` items. """
-        
         self.security = None
-        """ Security Labels applied to this resource.
-        List of `Coding` items (represented as `dict` in JSON). """
-        
         self.source = None
-        """ Identifies where the resource comes from.
-        Type `str`. """
-        
         self.tag = None
-        """ Tags applied to this resource.
-        List of `Coding` items (represented as `dict` in JSON). """
-        
         self.versionId = None
-        """ Version specific identifier.
-        Type `str`. """
         
         super(Meta, self).__init__(jsondict=jsondict, strict=strict)
     

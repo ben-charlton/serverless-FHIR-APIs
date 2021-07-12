@@ -4,8 +4,6 @@ import isodate
 import datetime
 
 logger = logging.getLogger(__name__)
-
-
 class FHIRDate(object):
 
     def __init__(self, jsonval=None):
