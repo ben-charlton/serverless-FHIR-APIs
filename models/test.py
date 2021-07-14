@@ -10,6 +10,5 @@ json_dict = { "id": "12345",
 
 #json_dict = json.loads(json_string)
 test_questionnaire = Questionnaire()
-test_questionnaire.update_with_json(json_dict)
-test_questionnaire.save()
-
+val = test_questionnaire.load("id", 11)
+print(val)
