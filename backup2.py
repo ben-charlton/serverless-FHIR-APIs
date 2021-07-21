@@ -68,5 +68,18 @@ for entry in s_list:
 print("------------------------------")
 print(json.dumps(s_list, indent=4))
 
+def removeInnermostItem(currentItem):
+  if "items" in currentItem:
+    if len(currentItem["items"]) == 0:
+      del currentItem["items"]
+    else:
+      for innerItem in currentItem["items"]:
+        removeInnermostItem(innerItem)
+        
+for entry in s_list:
+  removeInnermostItem(entry)
+
+print("------------------------------")
+print(json.dumps(s_list, indent=4))
 
 
