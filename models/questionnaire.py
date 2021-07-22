@@ -35,8 +35,6 @@ class Questionnaire(BaseModel, object):
         # this is only really useful when saving the object, can't access
         # this attribute when loading 
         self.items = [] 
-        # new comment
-        # new comment 2 
 
 
     ### This function takes in the posted JSON from the request
@@ -112,48 +110,64 @@ class Questionnaire(BaseModel, object):
     ### in json format of nested dicts
     ### to be returned 
     def _build_item_list(self, list_of_items):
-        currentJSON = {}
-        currentList = []
-        ordered_items = sorted(list_of_items, key=cmp_to_key(self._compare))
-        for item in ordered_items:
-            print(json.dumps(item.to_dict(), indent=4))
-            #self.addInsideJSON(item.linkId, item, currentJSON, currentList)
         
-        # we can use the sort function again to sort the 'outer' item list
-        # by their linkIds, and this will be the final list to return to the 
-        # json that will be send back in the GET request. 
-        currentList = sorted(currentList, key=cmp_to_key(self._compare))
-        return currentJSON
+        list_of_dicts = self._item_to_dict(list_of_items)
 
-    @staticmethod
-    def addInsideJSON(id, item, JSON, item_list):
-        # it is a single number if there are no '.' 
-        # in the item.linkId string
-        if "." in id:
-            # find the last occurrence of the period (one closest to EOL)
-            # and then the new id is just the string up until that point
-            last_period_index = item.linkId.rfind(".")
-            new_id = item.linkId[:last_period_index] 
-            addInsideJSON(new_id, item, JSON[new_id])
-        else: # we are at a whole number
-            mapper = inspect(item)
-            for attribute in mapper.attrs:
-                key = attribute.key
-                if key == "questionnaire_id":
-                    continue
-                else:
-                    JSON[key] = getattr(item, key)
-                ### but how am i now going to be like 
-                ### JSON["item"] = { dict from previous iteration }
+        for entry in list_of_dicts:
+            entry["sortid"] = (entry["linkId"]).replace('.','')
+            entry["item"] = []
+
+        s_list = sorted(list_of_dicts, key=cmp_to_key(self.compare_item_ids))
+
+        maxNesting = 0
+        for entry in list_of_dicts:
+            nesting = len(entry["sortid"])
+            if nesting > maxNesting:
+                maxNesting = nesting
+
+        while maxNesting > 1:
+            itemIndex = 0
+            while itemIndex < len(s_list):
+                if ("sortid" in s_list[itemIndex]) and (len(s_list[itemIndex]["sortid"]) == maxNesting):
+                    innerIndex = 0
+                    while innerIndex < len(s_list):
+                        if ("sortid" in s_list[innerIndex]) and (len(s_list[innerIndex]["sortid"]) == maxNesting -1) :
+                            s1 = s_list[innerIndex]["sortid"]
+                            s2 = s_list[itemIndex]["sortid"][:-1]
+                            if (s1 == s2) :
+                                del s_list[itemIndex]["sortid"]
+                                s_list[innerIndex]["item"].append(s_list[itemIndex])
+                                break
+                        innerIndex += 1
+                itemIndex +=1
+            maxNesting -= 1
+
+        s_list = [x for x in s_list if "sortid" in x]
+
+        for entry in s_list:
+            del entry["sortid"]
+            self.removeInnermostItem(entry)
+        
+        return s_list
 
 
-
+    ### Helper function to remove the excess
+    ### 'item' field in the innermost item dict
+    def removeInnermostItem(self, currentItem):
+        if "item" in currentItem:
+            if len(currentItem["item"]) == 0:
+                del currentItem["item"]
+            else:
+                for innerItem in currentItem["item"]:
+                    self.removeInnermostItem(innerItem)
 
 
     ### return the Questionnaire in a JSON format
     def _to_json(self):
         return json.dumps(self._to_dict(), indent=4)
 
+    ### create the connection string for the database
+    ### which will eventually take in an authorised token
     def _get_conn_string(self):
         server = "tcp:fhir-questionnaire-server.database.windows.net"
         database = "questionnaire-database"
@@ -168,13 +182,24 @@ class Questionnaire(BaseModel, object):
     ### to sort items by linkId order, in order to create the 
     ### nested list of item dicts to return the JSON for a GET request
     @staticmethod
-    def _compare(item1, item2):
-        if item1.linkId < item2.linkId:
+    def compare_item_ids(item1, item2):
+        if item1["linkId"] < item2["linkId"]:
             return -1
-        elif item1.linkId > item2.linkId:
+        elif item1["linkId"] > item2["linkId"]:
             return 1
         else:
             return 0
+
+    ### helper function to create the list of item dicts
+    ### that gets processed to produce the final list
+    @staticmethod
+    def _item_to_dict(item_list):
+        dict_list = []
+        for item in item_list:
+            dict_to_add = item.to_dict()
+            dict_list.append(dict_to_add)
+        return dict_list
+
 
 class QuestionnaireItem(BaseModel):
     __tablename__ = "QuestionnaireItem"
