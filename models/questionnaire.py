@@ -35,6 +35,8 @@ class Questionnaire(BaseModel, object):
         # this is only really useful when saving the object, can't access
         # this attribute when loading 
         self.items = [] 
+        # new comment
+        # new comment 2 
 
 
     ### This function takes in the posted JSON from the request
