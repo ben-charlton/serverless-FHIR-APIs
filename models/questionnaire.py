@@ -6,6 +6,8 @@ import pyodbc
 import json
 from collections import OrderedDict
 from functools import cmp_to_key
+from coding import Coding
+from questionnaireitem import QuestionnaireItem
 
 BaseModel = declarative_base(name='BaseModel')
 
@@ -19,21 +21,34 @@ class Questionnaire(BaseModel, object):
     ### This creates the table in the database (once only)
     ### and sets up the mapping from object->database
     __tablename__ = "Questionnaire"
+    resourceType = Column(String)
     id = Column(String(450), primary_key=True) #450 needed because wont let primary key be max varchar
-    name = Column(String)
+    text = Column(String)
     url = Column(String)
+    name = Column(String)
     title = Column(String)
+    status = Column(String)
+    date = Column(DateTime)
+    publisher = Column(String)
+    description = Column(String)
+    purpose = Column(String)
+    copyright = Column(String)
+    code = relationship("Coding", back_populates="questionnaire")
     items = relationship('QuestionnaireItem', back_populates="questionnaire", lazy = True)
-    
+
     def __init__(self):
-        self.id = None 
-        self.name = None
+        self.resourceType = "Questionnaire"
+        self.id = None
+        self.text = None
         self.url = None
+        self.name = None 
         self.title = None
-        # self.items stores the 'outer' items in each questionnaire, 
-        # i.e. the main items in the list with no nesting (integer linkIds)
-        # this is only really useful when saving the object, can't access
-        # this attribute when loading 
+        self.status = None # draft | active | retired | unknown
+        self.date = None
+        self.publisher = None
+        self.purpose = None
+        self.copyright = None
+        self.code = []
         self.items = [] 
 
 
@@ -42,15 +57,19 @@ class Questionnaire(BaseModel, object):
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict):
         for key in json_dict:
-            if key != "item":
-                setattr(self, key, json_dict[key])
+            if key == "code":
+                code_list = json_dict[key]
+                for code_dict in code_list:
+                    new_item = Coding()
+                    new_item.update_with_dict(code_dict)
             elif key == "item":
                 items_list = json_dict[key]
-                for single_item_dict in items_list:
+                for item_dict in items_list:
                     new_item = QuestionnaireItem()
-                    # this then updates each 'outer' item with their respective nesting
-                    new_item.update_with_dict(single_item_dict)
+                    new_item.update_with_dict(item_dict, json_dict["id"], None)
                     self.items.append(new_item)
+            else:
+                setattr(self, key, json_dict[key])
         return
 
     ### Connects to the database given the authorised connection string
@@ -90,6 +109,8 @@ class Questionnaire(BaseModel, object):
     def _save_child_elements(self, session):
         for item in self.items:
             item._save(session)
+        for code in self.code:
+            code._save(session)
         return
 
     ### converts the Questionnaire object into a dictionary 
@@ -112,54 +133,30 @@ class Questionnaire(BaseModel, object):
     def _build_item_list(self, list_of_items):
         
         list_of_dicts = self._item_to_dict(list_of_items)
-
+        parent_list = []
+        nesting_check = 0
         for entry in list_of_dicts:
-            entry["sortid"] = (entry["linkId"]).replace('.','')
+            if entry["parentId"] != None:
+                nesting_check = 1
+            else:
+                parent_list.append(entry)
             entry["item"] = []
 
-        s_list = sorted(list_of_dicts, key=cmp_to_key(self.compare_item_ids))
+        while (nesting_check == 1):
+            nesting_check = 0
+            for item1 in list_of_dicts:
+                for item2 in list_of_dicts:
+                    if item1["parentId"] == item2["linkId"] and item1["parentId"] is not None:
+                        item1["parentId"] = None
+                        item2["item"].append(item1)
+                        nesting_check = 1
 
-        maxNesting = 0
         for entry in list_of_dicts:
-            nesting = len(entry["sortid"])
-            if nesting > maxNesting:
-                maxNesting = nesting
+            del entry["parentId"]
+            if len(entry["item"]) == 0:
+                del entry["item"]
 
-        while maxNesting > 1:
-            itemIndex = 0
-            while itemIndex < len(s_list):
-                if ("sortid" in s_list[itemIndex]) and (len(s_list[itemIndex]["sortid"]) == maxNesting):
-                    innerIndex = 0
-                    while innerIndex < len(s_list):
-                        if ("sortid" in s_list[innerIndex]) and (len(s_list[innerIndex]["sortid"]) == maxNesting -1) :
-                            s1 = s_list[innerIndex]["sortid"]
-                            s2 = s_list[itemIndex]["sortid"][:-1]
-                            if (s1 == s2) :
-                                del s_list[itemIndex]["sortid"]
-                                s_list[innerIndex]["item"].append(s_list[itemIndex])
-                                break
-                        innerIndex += 1
-                itemIndex +=1
-            maxNesting -= 1
-
-        s_list = [x for x in s_list if "sortid" in x]
-
-        for entry in s_list:
-            del entry["sortid"]
-            self.removeInnermostItem(entry)
-        
-        return s_list
-
-
-    ### Helper function to remove the excess
-    ### 'item' field in the innermost item dict
-    def removeInnermostItem(self, currentItem):
-        if "item" in currentItem:
-            if len(currentItem["item"]) == 0:
-                del currentItem["item"]
-            else:
-                for innerItem in currentItem["item"]:
-                    self.removeInnermostItem(innerItem)
+        return parent_list
 
 
     ### return the Questionnaire in a JSON format
@@ -177,132 +174,20 @@ class Questionnaire(BaseModel, object):
         odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
-    
-    ### This method is an internal method used by build_list_items
-    ### to sort items by linkId order, in order to create the 
-    ### nested list of item dicts to return the JSON for a GET request
-    @staticmethod
-    def compare_item_ids(item1, item2):
-        if item1["linkId"] < item2["linkId"]:
-            return -1
-        elif item1["linkId"] > item2["linkId"]:
-            return 1
-        else:
-            return 0
 
     ### helper function to create the list of item dicts
     ### that gets processed to produce the final list
-    @staticmethod
-    def _item_to_dict(item_list):
+    def _item_to_dict(self, item_list):
         dict_list = []
         for item in item_list:
             dict_to_add = item.to_dict()
             dict_list.append(dict_to_add)
         return dict_list
 
-
-class QuestionnaireItem(BaseModel):
-    __tablename__ = "QuestionnaireItem"
-    dummyCol = Column(Integer, primary_key=True)
-    questionnaire = relationship("Questionnaire", back_populates="items")
-    linkId = Column(String)
-    questionnaire_id = Column(String(450), ForeignKey('Questionnaire.id'))
-    text = Column(String)
-    #prefix = Column(String)
-    #enable_when = relationship("QuestionnaireItemEnableWhen", back_populates="item", uselist=False)
-
-    def __init__(self):
-        self.linkId = None
-        self.questionnaire_id = None
-        self.text = None
-        # again, self.items here is used to save off the elements
-        # into the table in the database
-        self.items = []
-        #self.enable_when = None # list represented in JSON as Dict
-        #self.prefix = None
-
-    def update_with_dict(self, item_dict):
-        for key in item_dict:
-            if key != "item":
-                setattr(self, key, item_dict[key])
-            elif key == "item":
-                items_list = item_dict[key]
-                for single_item_dict in items_list:
-                    new_item = QuestionnaireItem()
-                    new_item.update_with_dict(single_item_dict)
-                    self.items.append(new_item) 
-        return
-
-    def to_dict(self):
-        result = OrderedDict()
-        mapper = inspect(self)
-        for attribute in mapper.attrs:
-            key = attribute.key
-            if key == "questionnaire" or key == "questionnaire_id" or key == "dummyCol":
-                pass
-                #result["item"] = self._build_item_list(attribute.value)
-            else:
-                result[key] = getattr(self, key)
-        return result
-
-
-    def _save(self, session):
-        session.add(self)
-        for item in self.items:
-            item._save(session)
+    def build_coding_list(self, list_of_code_dicts):
         return
 
 
-# class QuestionnaireItemEnableWhen(BaseModel):
-#     __tablename__ = "QuestionnaireItemEnableWhen"
-#     id = Column(Integer)
-#     item = relationship("QuestionnaireItem", back_populates="enable_when")
-#     question = Column(String)
-#     operator = Column(String)
-    # answerBoolean = Column(Boolean)
-    # answerDecimal = Column(Float)
-    # answerInteger = Column(Integer)
-    # answerDate = Column(Date)
-    # answerDateTime = Column(DateTime)
-    # answerString = Column(String)
 
-#     def __init__(self):
-#         self.id = None
-#         self.item = None
-#         self.question = None
-#         self.operator = None
 
-# class QuestionnaireItemAnswerOption(BaseModel):
-    # __tablename__ = "QuestionnaireItemAnswer"
-    # id = Column(Integer)
-    # valueInteger = Column(Integer)
-    # valueDate = Column(Date)
-    # valueTime = Column(DateTime)
-    # valueString = Column(String)
 
-    # def __init__(self):
-    #     self.id = None
-    #     self.valueInteger = None
-    #     self.valueDate = None
-    #     self.valueDateTime = None
-    #     self.valueString = None
-
-#class QuestionnaireItemInitial(BaseModel):
-    
-    # __tablename__ = "QuestionnaireItemAnswer"
-    # id = Column(Integer)
-    # valueBoolean = Column(Boolean)
-    # valueDecimal = Column(Float)
-    # valueInteger = Column(Integer)
-    # valueDate = Column(Date)
-    # valueDateTime = Column(DateTime)
-    # valueString = Column(String)
-    
-    #def __init__(self):
-    # self.id = None
-    # self.valueBoolean = None
-    # self.valueDecimal = None
-    # self.valueInteger = None
-    # self.valueDate = None
-    # self.valueDateTime = None
-    # self.valueString = None
