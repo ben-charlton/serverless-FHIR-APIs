@@ -81,23 +81,3 @@ class QuestionnaireResponseItemAnswer(element.Element):
         self.valueTime = None
         self.valueUri = None
         
-        super(QuestionnaireResponseItemAnswer, self).__init__(jsondict=jsondict, strict=strict)
-    
-    def elementProperties(self):
-        js = super(QuestionnaireResponseItemAnswer, self).elementProperties()
-        js.extend([
-            ("item", "item", QuestionnaireResponseItem, True, None, False),
-            ("valueAttachment", "valueAttachment", attachment.Attachment, False, "value", False),
-            ("valueBoolean", "valueBoolean", bool, False, "value", False),
-            ("valueCoding", "valueCoding", coding.Coding, False, "value", False),
-            ("valueDate", "valueDate", fhirdate.FHIRDate, False, "value", False),
-            ("valueDateTime", "valueDateTime", fhirdate.FHIRDate, False, "value", False),
-            ("valueDecimal", "valueDecimal", float, False, "value", False),
-            ("valueInteger", "valueInteger", int, False, "value", False),
-            ("valueQuantity", "valueQuantity", quantity.Quantity, False, "value", False),
-            ("valueReference", "valueReference", reference.Reference, False, "value", False),
-            ("valueString", "valueString", str, False, "value", False),
-            ("valueTime", "valueTime", fhirdate.FHIRDate, False, "value", False),
-            ("valueUri", "valueUri", str, False, "value", False),
-        ])
-        return js

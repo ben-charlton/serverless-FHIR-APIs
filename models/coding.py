@@ -2,9 +2,7 @@ from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, D
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
 from collections import OrderedDict
-
-
-BaseModel = declarative_base(name='BaseModel')
+from questionnaire import BaseModel
 
 ### CODING CLASS DEFINITION
 ### This is the ORM mapped class that is used to create
@@ -13,8 +11,8 @@ class Coding(BaseModel, object):
     
     __tablename__ = "Coding"
     id = Column(Integer, primary_key=True)
-    questionnaire = relationship("Questionnaire", back_populates="code")
-    item = relationship("QuestionnaireItem", back_populates="code")
+    questionnaireId = Column(String(450), ForeignKey('Questionnaire.id'))
+    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
     system = Column(String)
     version = Column(String)
     code = Column(String)
@@ -34,18 +32,18 @@ class Coding(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "id" or key == "questionnaire" or key == "item":
+            if key == "id" or key == "questionnaireId" or key == "itemId":
                 pass
             else:
                 result[key] = getattr(self, key)
         return result
 
-    def update_with_json(self, json_dict):
+    def update_with_dict(self, json_dict):
         for key in json_dict:
             setattr(self, key, json_dict[key])
         return
 
-    def save(self, session):
+    def _save(self, session):
         session.add(self)
         return
         

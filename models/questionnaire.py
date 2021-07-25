@@ -6,7 +6,6 @@ import pyodbc
 import json
 from collections import OrderedDict
 from functools import cmp_to_key
-from coding import Coding
 from questionnaireitem import QuestionnaireItem
 
 BaseModel = declarative_base(name='BaseModel')
@@ -33,8 +32,8 @@ class Questionnaire(BaseModel, object):
     description = Column(String)
     purpose = Column(String)
     copyright = Column(String)
-    code = relationship("Coding", back_populates="questionnaire")
-    items = relationship('QuestionnaireItem', back_populates="questionnaire", lazy = True)
+    code = relationship("Coding", lazy=True)
+    item = relationship('QuestionnaireItem', back_populates="questionnaire", lazy = True)
 
     def __init__(self):
         self.resourceType = "Questionnaire"
@@ -49,7 +48,7 @@ class Questionnaire(BaseModel, object):
         self.purpose = None
         self.copyright = None
         self.code = []
-        self.items = [] 
+        self.item = [] 
 
 
     ### This function takes in the posted JSON from the request
@@ -62,12 +61,16 @@ class Questionnaire(BaseModel, object):
                 for code_dict in code_list:
                     new_item = Coding()
                     new_item.update_with_dict(code_dict)
+                    self.code.append(new_item)
+            #elif key == "text":
+            #    text_string = json.dumps(json_dict[key], indent=4)
+            #    setattr(self, key, json_dict[key])
             elif key == "item":
                 items_list = json_dict[key]
                 for item_dict in items_list:
                     new_item = QuestionnaireItem()
                     new_item.update_with_dict(item_dict, json_dict["id"], None)
-                    self.items.append(new_item)
+                    self.item.append(new_item)
             else:
                 setattr(self, key, json_dict[key])
         return
@@ -107,7 +110,7 @@ class Questionnaire(BaseModel, object):
             return None
 
     def _save_child_elements(self, session):
-        for item in self.items:
+        for item in self.item:
             item._save(session)
         for code in self.code:
             code._save(session)
@@ -120,7 +123,7 @@ class Questionnaire(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "items":
+            if key == "item":
                 result["item"] = self._build_item_list(attribute.value)
             else:
                 result[key] = getattr(self, key)
@@ -184,8 +187,6 @@ class Questionnaire(BaseModel, object):
             dict_list.append(dict_to_add)
         return dict_list
 
-    def build_coding_list(self, list_of_code_dicts):
-        return
 
 
 
