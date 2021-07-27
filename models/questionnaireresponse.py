@@ -1,83 +1,146 @@
-from . import element, quantity, coding, fhirdate, reference, attachment, domainresource
+from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, Date, DateTime, ForeignKey, inspect
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, Session
+from collections import OrderedDict
 
-class QuestionnaireResponse(domainresource.DomainResource):
-
-    resource_type = "QuestionnaireResponse"
+BaseModel = declarative_base(name='BaseModel')
+class QuestionnaireResponse(BaseModel, object):
+    __tablename__ = "QuestionnaireResponse"
+    resourceType = Column(String)
+    id = Column(String(450), primary_key=True) 
+    text = Column(String)
+    identifier = Column(String)
+    basedOn = relationship("Reference")
+    partOf = relationship("Reference")
+    questionnaire = Column(String)
+    status = Column(String)
+    subject = Column(String)
+    encounter = Column(String)
+    authored = Column(DateTime)
+    author = Column(String)
+    source = Column(String)
+    item = relationship('QuestionnaireResponseItem', back_populates="questionnaireResponse", lazy = True)
     
-    def __init__(self, jsondict=None, strict=True):
+    def __init__(self):
 
-        self.author = None
-        self.authored = None
-        self.basedOn = None
-        self.encounter = None
+        self.resourceType = "QuestionnaireResponse" 
+        self.text = None
         self.identifier = None
-        self.item = None
+        self.basedOn = None
         self.partOf = None
         self.questionnaire = None
-        self.source = None
-        self.status = None
+        self.status = None  
         self.subject = None
+        self.encounter = None
+        self.authored = None
+        self.author = None
+        self.source = None
+        self.item = []
 
-        super(QuestionnaireResponse, self).__init__(jsondict=jsondict, strict=strict)
-    
-    def elementProperties(self):
-        js = super(QuestionnaireResponse, self).elementProperties()
-        js.extend([
-            ("author", "author", reference.Reference, False, None, False),
-            ("authored", "authored", fhirdate.FHIRDate, False, None, False),
-            ("basedOn", "basedOn", reference.Reference, True, None, False),
-            ("encounter", "encounter", reference.Reference, False, None, False),
-            ("identifier", "identifier", identifier.Identifier, False, None, False),
-            ("item", "item", QuestionnaireResponseItem, True, None, False),
-            ("partOf", "partOf", reference.Reference, True, None, False),
-            ("questionnaire", "questionnaire", str, False, None, False),
-            ("source", "source", reference.Reference, False, None, False),
-            ("status", "status", str, False, None, True),
-            ("subject", "subject", reference.Reference, False, None, False),
-        ])
-        return js
 
-class QuestionnaireResponseItem(element.Element):
-    
-    resource_type = "QuestionnaireResponseItem"
-    
-    def __init__(self, jsondict=None, strict=True):
-        self.answer = None
-        self.definition = None
-        self.item = None
-        self.linkId = None
-        self.text = None
+    def update_with_json(self, json_dict):
+        for key in json_dict:
+            if key == "item":
+                items_list = json_dict[key]
+                for item_dict in items_list:
+                    new_item = QuestionnaireResponseItem()
+                    new_item.update_with_dict(item_dict, json_dict["id"], None)
+                    self.item.append(new_item)
+            else:
+                setattr(self, key, json_dict[key])
+        return
 
-        super(QuestionnaireResponseItem, self).__init__(jsondict=jsondict, strict=strict)
-    
-    def elementProperties(self):
-        js = super(QuestionnaireResponseItem, self).elementProperties()
-        js.extend([
-            ("answer", "answer", QuestionnaireResponseItemAnswer, True, None, False),
-            ("definition", "definition", str, False, None, False),
-            ("item", "item", QuestionnaireResponseItem, True, None, False),
-            ("linkId", "linkId", str, False, None, True),
-            ("text", "text", str, False, None, False),
-        ])
-        return js
+    def save(self):
+        connect_str = self._get_conn_string()
+        try: 
+            engine = create_engine(connect_str)
+            BaseModel.metadata.create_all(engine)
+            session = Session(engine)
+            session.begin()
+            session.add(self)
+            self._save_child_elements(session)
+            session.commit()
+            session.close()
+            return True
+        except:
+            return False
 
-class QuestionnaireResponseItemAnswer(element.Element):
 
-    resource_type = "QuestionnaireResponseItemAnswer"
-    
-    def __init__(self, jsondict=None, strict=True):
+    def load(self, param, value):
+        connect_str = self._get_conn_string()
+        try:
+            engine = create_engine(connect_str)
+            session = Session(engine)
+            kwargs = {param : value}
+            questionnaire_response = session.query(QuestionnaireResponse).filter_by(**kwargs).one()
+            retrieved_json = questionnaire_response._to_json()
+            session.close()
+            return retrieved_json
+        except:
+            return None
+
+    def _save_child_elements(self, session):
+        for item in self.item:
+            item._save(session)
+        return
+
+    def _to_dict(self):
+        result = OrderedDict()
+        mapper = inspect(self)
+        for attribute in mapper.attrs:
+            key = attribute.key
+            if key == "item":
+                result["item"] = self._build_item_list(attribute.value)
+            else:
+                result[key] = getattr(self, key)
+        return result
+
+
+    def _build_item_list(self, list_of_items):
         
-        self.item = None
-        self.valueAttachment = None
-        self.valueBoolean = None
-        self.valueCoding = None
-        self.valueDate = None
-        self.valueDateTime = None
-        self.valueDecimal = None
-        self.valueInteger = None
-        self.valueQuantity = None
-        self.valueReference = None
-        self.valueString = None
-        self.valueTime = None
-        self.valueUri = None
-        
+        list_of_dicts = self._item_to_dict(list_of_items)
+        parent_list = []
+        nesting_check = 0
+        for entry in list_of_dicts:
+            if entry["parentId"] != None:
+                nesting_check = 1
+            else:
+                parent_list.append(entry)
+            entry["item"] = []
+
+        while (nesting_check == 1):
+            nesting_check = 0
+            for item1 in list_of_dicts:
+                for item2 in list_of_dicts:
+                    if item1["parentId"] == item2["linkId"] and item1["parentId"] is not None:
+                        item1["parentId"] = None
+                        item2["item"].append(item1)
+                        nesting_check = 1
+
+        for entry in list_of_dicts:
+            del entry["parentId"]
+            if len(entry["item"]) == 0:
+                del entry["item"]
+
+        return parent_list
+
+    def _to_json(self):
+        return json.dumps(self._to_dict(), indent=4)
+
+
+    def _get_conn_string(self):
+        server = "tcp:fhir-questionnaire-server.database.windows.net"
+        database = "questionnaire-database"
+        username = "bencharlton"
+        password = "Benazure123"
+        driver = '{ODBC Driver 17 for SQL Server}'
+        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
+        connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
+        return connect_str
+
+    def _item_to_dict(self, item_list):
+        dict_list = []
+        for item in item_list:
+            dict_to_add = item.to_dict()
+            dict_list.append(dict_to_add)
+        return dict_list

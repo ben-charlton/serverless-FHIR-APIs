@@ -2,7 +2,12 @@ from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, D
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
 from collections import OrderedDict
-from questionnaire import BaseModel
+from .questionnaire import BaseModel
+from .enablewhen import QuestionnaireItemEnableWhen
+from .initial import QuestionnaireItemInitial
+from .answeroption import QuestionnaireItemAnswerOption
+from .coding import Coding
+
 class QuestionnaireItem(BaseModel, object):
     __tablename__ = "QuestionnaireItem"
     id = Column(Integer, primary_key=True)
@@ -55,21 +60,18 @@ class QuestionnaireItem(BaseModel, object):
                     enable = QuestionnaireItemEnableWhen()
                     enable.update_with_dict(entry)
                     self.enableWhen.append(enable)
-                pass
             elif key == "answerOption":
                 answer_list = item_dict[key]
                 for entry in answer_list:
                     answer = QuestionnaireItemAnswerOption()
                     answer.update_with_dict(entry)
                     self.answerOption.append(answer)
-                pass
             elif key == "initial":
                 initial_list = item_dict[key]
                 for entry in initial_list:
                     initial = QuestionnaireItemInitial()
                     initial.update_with_dict(entry)
                     self.initial.append(initial)
-                pass
             elif key == "item":
                 items_list = item_dict[key]
                 for single_item_dict in items_list:

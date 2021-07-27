@@ -7,6 +7,7 @@ import json
 from collections import OrderedDict
 from functools import cmp_to_key
 from questionnaireitem import QuestionnaireItem
+from coding import Coding
 
 BaseModel = declarative_base(name='BaseModel')
 
