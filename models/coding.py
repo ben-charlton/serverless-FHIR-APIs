@@ -35,7 +35,8 @@ class Coding(BaseModel, object):
             if key == "id" or key == "questionnaireId" or key == "itemId":
                 pass
             else:
-                result[key] = getattr(self, key)
+                if getattr(self, key) is not None:
+                    result[key] = getattr(self, key)
         return result
 
     def update_with_dict(self, json_dict):
@@ -46,5 +47,4 @@ class Coding(BaseModel, object):
     def _save(self, session):
         session.add(self)
         return
-        
         

@@ -13,6 +13,7 @@ class QuestionnaireItem(BaseModel, object):
     id = Column(Integer, primary_key=True)
     questionnaire = relationship("Questionnaire", back_populates="item")
     questionnaire_id = Column(String(450), ForeignKey('Questionnaire.id'))
+    parent_id = Column(String)
     linkId = Column(String)
     definition = Column(String)
     code = relationship("Coding")
@@ -49,10 +50,9 @@ class QuestionnaireItem(BaseModel, object):
         self.initial = []
         self.item = []
 
-    def update_with_dict(self, item_dict, questionnaire_id, parentId=None):
+    def update_with_dict(self, item_dict, questionnaire_id, parent_id=None):
         self.questionnaire_id = questionnaire_id
-        if parentId is not None:
-            self.parentId = parentId
+        self.parent_id = parent_id
         for key in item_dict:
             if key == "enableWhen":
                 enable_list = item_dict[key]
@@ -94,11 +94,20 @@ class QuestionnaireItem(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "questionnaire" or key == "questionnaire_id" or key == "dummyCol":
+            if key == "questionnaire" or key == "questionnaire_id" or key == "id":
                 pass
-            else:
+            elif key == "parent_id":
                 result[key] = getattr(self, key)
-                # will need to see if this works for all of the lists?
+            else:
+                if getattr(self, key) is not None:
+                    if isinstance(getattr(self, key), list):
+                        if len(getattr(self, key)) > 0:
+                            result_list = []
+                            for entry in getattr(self, key):
+                                result_list.append(entry.to_dict())
+                            result[key] = result_list
+                    else:
+                        result[key] = getattr(self, key)
         return result
 
     def _save(self, session):

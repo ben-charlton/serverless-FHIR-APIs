@@ -32,12 +32,18 @@ class QuestionnaireItemAnswerOption(BaseModel, object):
                 pass
             else:
                 if getattr(self, key) is not None:
-                    result[key] =  getattr(self, key)
+                    if key == "valueCoding":
+                        result[key] = json.loads(getattr(self, key))
+                    else:
+                        result[key] =  getattr(self, key)
         return result
 
     def update_with_dict(self, json_dict):
         for key in json_dict:
-            setattr(self, key, json_dict[key])      
+            if key == "valueCoding":
+                setattr(self, key, json.dumps(json_dict[key]))      
+            else:
+                setattr(self, key, json_dict[key])       
         return
 
     def _save(self, session):

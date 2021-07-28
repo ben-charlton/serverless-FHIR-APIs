@@ -33,8 +33,10 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "item" or key == "id":
+            if key == "itemId" or key == "id":
                 pass
+            elif key == "answerCoding":
+                result[key] = json.loads(attribute.value)
             else:
                 if getattr(self, key) is not None:
                     result[key] =  getattr(self, key)
@@ -42,7 +44,10 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
 
     def update_with_dict(self, json_dict):
         for key in json_dict:
-            setattr(self, key, json_dict[key])      
+            if key == "answerCoding":
+                self.answerCoding = json.dumps(json_dict[key])
+            else:
+                setattr(self, key, json_dict[key])      
         return
     
     def _save(self, session):

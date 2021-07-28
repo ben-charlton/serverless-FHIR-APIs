@@ -14,6 +14,7 @@ class QuestionnaireItemInitial(BaseModel,object):
     valueDate = Column(Date)
     valueDateTime = Column(DateTime)
     valueString = Column(String)
+    valueCoding = Column(String)
     
     def __init__(self):
         self.id = None
@@ -23,22 +24,29 @@ class QuestionnaireItemInitial(BaseModel,object):
         self.valueDate = None
         self.valueDateTime = None
         self.valueString = None
+        self.valueCoding =  None
 
     def to_dict(self):
         result = OrderedDict()
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "item" or key == "id":
+            if key == "itemId" or key == "id":
                 pass
             else:
                 if getattr(self, key) is not None:
-                    result[key] =  getattr(self, key)
+                    if key == "valueCoding":
+                        result[key] = json.loads(getattr(self, key))
+                    else:
+                        result[key] =  getattr(self, key)
         return result
 
     def update_with_dict(self, json_dict):
         for key in json_dict:
-            setattr(self, key, json_dict[key])      
+            if key == "valueCoding":
+                setattr(self, key, json.dumps(json_dict[key]))      
+            else:
+                setattr(self, key, json_dict[key])      
         return
     
     def _save(self, session):
