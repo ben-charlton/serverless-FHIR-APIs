@@ -19,15 +19,16 @@ class QuestionnaireResponse(BaseModel, object):
     status = Column(String)
     subject = Column(String)
     encounter = Column(String)
-    authored = Column(DateTime)
+    authored = Column(String)
     author = Column(String)
     source = Column(String)
-    item = relationship('QuestionnaireResponseItem', back_populates="questionnaireResponse", lazy = True)
-    contained = relationship("Contained",lazy=True)
+    item = relationship('QuestionnaireResponseItem',cascade='delete', back_populates="questionnaireResponse", lazy = True)
+    contained = relationship("Contained", cascade='delete', lazy=True, back_populates="response")
     
     def __init__(self):
 
         self.resourceType = "QuestionnaireResponse" 
+        self.id = None
         self.text = None
         self.contained = []
         self.identifier = None
@@ -44,7 +45,7 @@ class QuestionnaireResponse(BaseModel, object):
 
     def update_with_json(self, json_dict):
         for key in json_dict:
-            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author":
+            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -55,7 +56,8 @@ class QuestionnaireResponse(BaseModel, object):
             elif key == "contained":
                 contained_list = json_dict[key]
                 for entry in contained_list:
-                    contained_item = Contained(json_dict["id"], entry)
+                    contained_item = Contained()
+                    contained_item.update(json_dict["id"], entry)
                     self.contained.append(contained_item)
             else:
                 setattr(self, key, json_dict[key])
@@ -65,29 +67,21 @@ class QuestionnaireResponse(BaseModel, object):
         connect_str = self._get_conn_string()
         try: 
             engine = create_engine(connect_str)#, echo=True)
-            try:
-                BaseModel.metadata.create_all(engine)
-            except Exception as e:
-                print(str(e))
-            print('here10')
+            BaseModel.metadata.create_all(engine)
             session = Session(engine)
-            print('here11')
             session.begin()
-            print('here12')
-            try:
-                session.add(self)
-                self._save_child_elements(session)
-            except Exception as e:
-                print(str(e))
-            print('here13')
+            session.add(self)
+            self._save_child_elements(session)
+            print('we already made it past')
             try:
                 session.commit()
             except Exception as e:
-                print(str(e))
+                print('this exception?')
+                print(e)
             session.close()
             return True
         except Exception as e:
-            print(str(e))
+            print(e)
             return False
 
 
@@ -106,13 +100,9 @@ class QuestionnaireResponse(BaseModel, object):
 
     def _save_child_elements(self, session):
         for item in self.item:
-            print("---item here----")
-            print(item.linkId)
             item._save(session)
-        print('here7.5')
         for contained in self.contained:
             contained._save(session)
-        print('here8')
         return
 
     def _to_dict(self):
@@ -210,9 +200,14 @@ class Contained(BaseModel, object):
     response = relationship("QuestionnaireResponse", back_populates="contained")
     string = Column(String)
 
-    def __init__(self, response_id, resource_dict):
+    def __init__(self):
+        self.response_id = None
+        self.string = None
+    
+    def update(self, response_id, resource_dict):
         self.response_id = response_id
         self.string = json.dumps(resource_dict, indent=4)
+        return
 
     def to_dict(self):
         return json.loads(self.string)
@@ -230,9 +225,9 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
     valueBoolean = Column(Boolean)
     valueDecimal = Column(Float)
     valueInteger = Column(Integer)
-    valueDate = Column(Date)
-    valueDateTime = Column(DateTime)
-    valueTime = Column(DateTime)
+    valueDate = Column(String)
+    valueDateTime = Column(String)
+    valueTime = Column(String)
     valueString = Column(String)
     valueUri = Column(String)
     valueAttachment = Column(String)
@@ -290,8 +285,6 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
         session.add(self)
         for item in self.item:
             item._save(session)
-        for answer in self.answer:
-            answer._save(session)
         return
 
 #########################################################################################################################
@@ -301,14 +294,13 @@ class QuestionnaireResponseItem(BaseModel, object):
     __tablename__ = "QuestionnaireResponseItem"
     id = Column(Integer, primary_key=True)
     response_id = Column(String(450), ForeignKey('QuestionnaireResponse.id'))
-    questionnaireResponse = relationship("QuestionnaireResponse", back_populates="item", foreign_keys=[response_id])
+    questionnaireResponse = relationship("QuestionnaireResponse", cascade='delete', back_populates="item", foreign_keys=[response_id])
     parent_id = Column(String)
     linkId = Column(String)
     definition = Column(String)
     text = Column(String)
     is_answer = Column(Boolean)
-    answer_id = Column(Integer, ForeignKey('QuestionnaireResponseItemAnswer.id'))
-    answer = relationship("QuestionnaireResponseItemAnswer", foreign_keys=[answer_id])
+    answer = relationship("QuestionnaireResponseItemAnswer", cascade='delete')
 
 
     def __init__(self):
@@ -320,7 +312,7 @@ class QuestionnaireResponseItem(BaseModel, object):
         self.item = []
         self.response_id = None
         self.parent_id = None
-        self.answer_id = None
+        self.is_answer = None
 
     def update_with_dict(self, item_dict, response_id, is_answer, parent_id=None):
         self.response_id = response_id
@@ -356,7 +348,6 @@ class QuestionnaireResponseItem(BaseModel, object):
 
     def _save(self, session):
         session.add(self)
-        print('here???/')
         for item in self.item:
             item._save(session)
         for answer in self.answer:
