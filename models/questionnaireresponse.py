@@ -51,7 +51,7 @@ class QuestionnaireResponse(BaseModel, object):
                 items_list = json_dict[key]
                 for item_dict in items_list:
                     new_item = QuestionnaireResponseItem()
-                    new_item.update_with_dict(item_dict, json_dict["id"], False, None)
+                    new_item.update_with_dict(item_dict, json_dict["id"], None)
                     self.item.append(new_item)
             elif key == "contained":
                 contained_list = json_dict[key]
@@ -66,23 +66,17 @@ class QuestionnaireResponse(BaseModel, object):
     def save(self):
         connect_str = self._get_conn_string()
         try: 
-            engine = create_engine(connect_str)#, echo=True)
+            engine = create_engine(connect_str)
             BaseModel.metadata.create_all(engine)
             session = Session(engine)
             session.begin()
             session.add(self)
             self._save_child_elements(session)
-            print('we already made it past')
-            try:
-                session.commit()
-            except Exception as e:
-                print('this exception?')
-                print(e)
+            session.commit()
             session.close()
             return True
         except Exception as e:
-            print(e)
-            return False
+            return str(e)
 
 
     def load(self, param, value):
@@ -95,8 +89,8 @@ class QuestionnaireResponse(BaseModel, object):
             retrieved_json = questionnaire_response._to_json()
             session.close()
             return retrieved_json
-        except:
-            return None
+        except Exception as e:
+            return str(e)
 
     def _save_child_elements(self, session):
         for item in self.item:
@@ -113,8 +107,8 @@ class QuestionnaireResponse(BaseModel, object):
             if attribute.value == None:
                 continue
             if key == "item":
-                result["item"] = self._build_item_list(attribute.value)
-            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author":
+                result["item"] = json.loads(self._build_item_list(attribute.value))
+            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
                 result[key] = json.loads(getattr(self, key))
             elif key == "contained":
                 cont_list = []
@@ -130,36 +124,62 @@ class QuestionnaireResponse(BaseModel, object):
     def _build_item_list(self, list_of_items):
     
         item_dicts = self._items_to_dicts(list_of_items)
-        answer_dicts = self._get_answer_dicts_from_items(list_of_items)
-        return
-        # parent_list = []
-        # nesting_check = 0
-        # for entry in item_dicts:
-        #     if entry["parent_id"] != None:
-        #         nesting_check = 1
-        #     else:
-        #         parent_list.append(entry)
-        #     entry["item"] = []
+        answer_dicts = self._get_answer_dicts(list_of_items)
+        parent_list, nesting_check = self._create_helper_fields(item_dicts, answer_dicts)
 
-        # while (nesting_check == 1):
-        #     nesting_check = 0
-        #     for item1 in item_dicts:
-        #         for item2 in item_dicts:
-        #             if item1["parent_id"] == item2["linkId"] and item1["parent_id"] is not None:
-        #                 item1["parent_id"] = None
-        #                 item2["item"].append(item1)
-        #                 nesting_check = 1
+        while (nesting_check == 1):
+            nesting_check = 0
+            for item1 in item_dicts:
+                for item2 in item_dicts:
+                    if item2["answer_id"] != None:
+                        for answer in answer_dicts:
+                            if (item2["parent_id"] == answer["item_id"]) and item2["answer_id"] == answer["answer_counter"]:
+                                answer["item"].append(item2)
+                                item2["answer_id"] = None
+                                item2["parent_id"] = None
+                    if item1["parent_id"] == item2["linkId"] and item1["parent_id"] is not None:
+                        item1["parent_id"] = None
+                        item2["item"].append(item1)
+                        nesting_check = 1
+                for answer in answer_dicts:
+                    if answer["item_id"] == item1["linkId"]:
+                        item1["answer"].append(answer)
+                        answer["item_id"] = None
 
-        # for entry in item_dicts:
-        #     del entry["parent_id"]
-        #     if len(entry["item"]) == 0:
-        #         del entry["item"]
-
-        # return parent_list
+        self._delete_unnecessary_fields(item_dicts, answer_dicts)
+        return json.dumps(parent_list, indent=4)
 
     def _to_json(self):
         return json.dumps(self._to_dict(), indent=4)
 
+    def _create_helper_fields(self,item_dicts, answer_dicts):
+        parent_list = []
+        nesting_check = 0
+        for entry in item_dicts:
+            if entry["parent_id"] != None:
+                nesting_check = 1
+            else:
+                parent_list.append(entry)
+            entry["item"] = []
+            entry["answer"] = []
+        for entry in answer_dicts:
+            entry["item"] = []
+        return parent_list, nesting_check
+
+    def _delete_unnecessary_fields(self, item_dicts, answer_dicts):
+        for entry in item_dicts:
+            del entry["parent_id"]
+            del entry["answer_id"]
+            if len(entry["item"]) == 0:
+                del entry["item"]
+            if len(entry["answer"]) == 0:
+                del entry["answer"]
+        for entry in answer_dicts:
+            del entry["item_id"]
+            del entry["answer_counter"]
+            if len(entry["item"]) == 0:
+                del entry["item"]
+        return
 
     def _get_conn_string(self):
         server = "tcp:fhir-questionnaire-server.database.windows.net"
@@ -178,17 +198,14 @@ class QuestionnaireResponse(BaseModel, object):
             dict_list.append(dict_to_add)
         return dict_list
 
-    def _get_answer_dicts_from_items(self, list_of_items):
+    def _get_answer_dicts(self, list_of_items):
         answer_dict_list = []
         for item in list_of_items:
-            result = OrderedDict()
-            mapper = inspect(self)
+            mapper = inspect(item)
             for attribute in mapper.attrs:
                 if attribute.key == "answer":
-                    print('---item looking at----')
-                    print(item.id)
-                    print('-----items answers------')
-                    print(attribute.value)
+                    for answer in attribute.value:
+                        answer_dict_list.append(answer.to_dict())
         return answer_dict_list
 
 #########################################################################################################################
@@ -221,7 +238,9 @@ class Contained(BaseModel, object):
 class QuestionnaireResponseItemAnswer(BaseModel, object):
     __tablename__ = "QuestionnaireResponseItemAnswer"
     id = Column(Integer, primary_key=True)
-    item_id = Column(Integer, ForeignKey('QuestionnaireResponseItem.id'))
+    item_FK = Column(Integer, ForeignKey('QuestionnaireResponseItem.id'))
+    item_id = Column(String)
+    answer_counter = Column(Integer)
     valueBoolean = Column(Boolean)
     valueDecimal = Column(Float)
     valueInteger = Column(Integer)
@@ -235,7 +254,6 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
     valueQuantity = Column(String)
     valueReference = Column(String)
     
-
     def __init__(self):
         
         self.valueBoolean = None
@@ -250,20 +268,24 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
         self.valueCoding = None
         self.valueQuantity = None
         self.valueReference = None
+        self.item_id = None
+        self.answer_counter = None
         self.item = []
 
-    def update_with_dict(self, item_dict, response_id):
-        for key in item_dict:
+    def update_with_dict(self, json_dict, response_id, item_id, answer_counter=None):
+        self.item_id = item_id
+        self.answer_counter = answer_counter
+        for key in json_dict:
             if key == "valueAttachment" or key == "valueCoding" or key == "valueQuantity" or key == "valueReference":
-                setattr(self, key, json.dumps(item_dict[key], indent=4))
+                setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
-                items_list = item_dict[key]
+                items_list = json_dict[key]
                 for single_item_dict in items_list:
                     new_item = QuestionnaireResponseItem()
-                    new_item.update_with_dict(single_item_dict, response_id, True, single_item_dict["linkId"])
+                    new_item.update_with_dict(single_item_dict, response_id, item_id, answer_counter)
                     self.item.append(new_item)  
             else:
-                setattr(self, key, item_dict[key])
+                setattr(self, key, json_dict[key])
         return
 
     def to_dict(self):
@@ -273,7 +295,7 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
             key = attribute.key
             if attribute.value == None:
                 continue
-            if key == "item_id" or key == "id":
+            if key == "item_FK" or key == "id":
                 pass
             elif key == "valueAttachment" or key == "valueCoding" or key == "valueQuantity" or key == "valueReference":
                 result[key] = json.loads(getattr(self, key))
@@ -299,7 +321,7 @@ class QuestionnaireResponseItem(BaseModel, object):
     linkId = Column(String)
     definition = Column(String)
     text = Column(String)
-    is_answer = Column(Boolean)
+    answer_id = Column(Integer)
     answer = relationship("QuestionnaireResponseItemAnswer", cascade='delete')
 
 
@@ -312,24 +334,26 @@ class QuestionnaireResponseItem(BaseModel, object):
         self.item = []
         self.response_id = None
         self.parent_id = None
-        self.is_answer = None
+        self.answer_id = None
 
-    def update_with_dict(self, item_dict, response_id, is_answer, parent_id=None):
+    def update_with_dict(self, item_dict, response_id, parent_id=None, answer_id=None):
         self.response_id = response_id
         self.parent_id = parent_id
-        self.is_answer = is_answer
+        self.answer_id = answer_id
         for key in item_dict:
             if key == "answer":
                 answer_list = item_dict[key]
+                answer_counter = 1
                 for entry in answer_list:
                     answer = QuestionnaireResponseItemAnswer()
-                    answer.update_with_dict(entry, response_id)
+                    answer.update_with_dict(entry, response_id, item_dict["linkId"], answer_counter)
                     self.answer.append(answer)
+                    answer_counter = answer_counter + 1
             elif key == "item":
                 items_list = item_dict[key]
                 for single_item_dict in items_list:
                     new_item = QuestionnaireResponseItem()
-                    new_item.update_with_dict(single_item_dict, response_id, False, item_dict["linkId"])
+                    new_item.update_with_dict(single_item_dict, response_id, item_dict["linkId"])
                     self.item.append(new_item)  
             else:
                 setattr(self, key, item_dict[key])
@@ -340,8 +364,10 @@ class QuestionnaireResponseItem(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "questionnaireResponse" or key == "id" or key == "answer":
-                pass
+            if key == "questionnaireResponse" or key == "id" or key == "answer" or key == "response_id":
+                continue
+            if (key == "definition" or key == "text") and attribute.value == None:
+                continue
             else:
                 result[key] = getattr(self, key)
         return result
