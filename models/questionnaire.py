@@ -6,6 +6,8 @@ import pyodbc
 import json
 from collections import OrderedDict
 from functools import cmp_to_key
+import uuid
+import os
 
 BaseModel = declarative_base(name='BaseModel')
 
@@ -20,7 +22,8 @@ class Questionnaire(BaseModel, object):
     ### and sets up the mapping from object->database
     __tablename__ = "Questionnaire"
     resourceType = Column(String)
-    id = Column(String(450), primary_key=True) #450 needed because wont let primary key be max varchar
+    uid = Column(String(100), primary_key=True)
+    id = Column(String) 
     text = Column(String)
     url = Column(String)
     name = Column(String)
@@ -36,6 +39,7 @@ class Questionnaire(BaseModel, object):
 
     def __init__(self):
         self.resourceType = "Questionnaire"
+        self.uid = uuid.uuid4().hex
         self.id = None
         self.text = None
         self.url = None
@@ -67,7 +71,7 @@ class Questionnaire(BaseModel, object):
                 items_list = json_dict[key]
                 for item_dict in items_list:
                     new_item = QuestionnaireItem()
-                    new_item.update_with_dict(item_dict, json_dict["id"], None)
+                    new_item.update_with_dict(item_dict, self.uid, None)
                     self.item.append(new_item)
             else:
                 setattr(self, key, json_dict[key])
@@ -79,6 +83,7 @@ class Questionnaire(BaseModel, object):
     def save(self):
         connect_str = self._get_conn_string()
         try: 
+            return_uid = self.uid
             engine = create_engine(connect_str)
             BaseModel.metadata.create_all(engine)
             session = Session(engine)
@@ -87,26 +92,33 @@ class Questionnaire(BaseModel, object):
             self._save_child_elements(session)
             session.commit()
             session.close()
-            return True
-        except:
+            return return_uid
+        except Exception as e:
+            print(e)
             return False
 
 
     ### Takes in the query parameters from the GET request
     ### and returns the JSON form of the questionnaire requested 
-    def load(self, param, value):
+    def load(self, query):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
-            kwargs = {param : value}
-            retrieved_questionnaire = session.query(Questionnaire).filter_by(**kwargs).one()
+            #kwargs = {param : value}
+            try:
+                retrieved_questionnaire = session.query(Questionnaire).filter_by(**query).one()
+            except Exception as e:
+                print("error")
+                print(str(e))
             retrieved_json = retrieved_questionnaire._to_json()
             session.close()
             return retrieved_json
         except:
             return None
 
+    ### Saves all child elements associated with the Questionnaire
+    ### by recursively adding all items and codes.
     def _save_child_elements(self, session):
         for item in self.item:
             item._save(session)
@@ -136,8 +148,13 @@ class Questionnaire(BaseModel, object):
             else:
                 result[key] = getattr(self, key)
         return result
+   
+   
+   ### return the Questionnaire in a JSON format
+    def _to_json(self):
+        return json.dumps(self._to_dict(), indent=4)
 
-
+    
     ### Return the list of questionnaire items 
     ### in json format of nested dicts
     ### to be returned 
@@ -169,26 +186,25 @@ class Questionnaire(BaseModel, object):
                 del entry["item"]
         return parent_list
 
-
-    ### return the Questionnaire in a JSON format
-    def _to_json(self):
-        return json.dumps(self._to_dict(), indent=4)
-
     ### create the connection string for the database
     ### which will eventually take in an authorised token
     def _get_conn_string(self):
-        server = "tcp:fhir-questionnaire-server.database.windows.net"
-        database = "questionnaire-database"
-        username = "bencharlton"
-        password = "Benazure123"
-        driver = '{ODBC Driver 17 for SQL Server}'
-        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
+        # server = "tcp:fhir-questionnaire-server.database.windows.net"
+        # database = "questionnaire-database"
+        # username = "bencharlton"
+        # password = "Benazure123"
+        # driver = '{ODBC Driver 17 for SQL Server}'
+        # #os.environ["CONNECTION_STRING"]
+        odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:fhir-questionnaire-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Benazure123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
 
+        #os.environ[ODBC_CONNECTION_STRING]
+
     ### helper function to create the list of item dicts
     ### that gets processed to produce the final list
-    def _item_to_dict(self, item_list):
+    @staticmethod
+    def _item_to_dict(item_list):
         dict_list = []
         for item in item_list:
             dict_to_add = item.to_dict()
@@ -307,7 +323,7 @@ class Coding(BaseModel, object):
     
     __tablename__ = "Coding"
     id = Column(Integer, primary_key=True)
-    questionnaireId = Column(String(450), ForeignKey('Questionnaire.id'))
+    questionnaireId = Column(String(100), ForeignKey('Questionnaire.uid'))
     itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
     system = Column(String)
     version = Column(String)
@@ -406,7 +422,7 @@ class QuestionnaireItem(BaseModel, object):
     __tablename__ = "QuestionnaireItem"
     id = Column(Integer, primary_key=True)
     questionnaire = relationship("Questionnaire", back_populates="item")
-    questionnaire_id = Column(String(450), ForeignKey('Questionnaire.id'))
+    questionnaire_id = Column(String(100), ForeignKey('Questionnaire.uid'))
     parent_id = Column(String)
     linkId = Column(String)
     definition = Column(String)
