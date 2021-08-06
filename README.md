@@ -20,8 +20,8 @@ $ pip install -r requirements.txt
 ```
 
 ### To do:
-1. introduce UUIDs to questionnaire and response, return those values for POST and fix enpoint to represent uuid
-2. make sure environment variable works for db connection
-3. separate get questionnaire into get (by uuid) and search (by name, url, title)
-4. introduce oauth flow
-5. Update/Delete's?
+1. DONE: introduce UUIDs to questionnaire and response, return those values for POST and fix enpoint to represent uuid
+2. DONE: separate get questionnaire into get (by uuid) and search (by name, url, title)
+3. IN PROGRESS: introduce oauth flow
+4. TODO: make sure environment variable works for db connection 
+5. TODO: Update/Delete's?
