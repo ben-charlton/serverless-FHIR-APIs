@@ -4,13 +4,26 @@ from sqlalchemy.orm import relationship, Session
 from collections import OrderedDict
 import json
 import urllib
+import uuid
+import logging
+import time
+import os
 
 BaseModel = declarative_base(name='BaseModel')
 
+### QUESTIONNAIRERESPONSE CLASS DEFINITION
+### This is the ORM mapped class that is used to create
+### questionnaireResponse objects from a given JSON body (POST),
+### and stored in the SQL database to be retrieved (GET)
 class QuestionnaireResponse(BaseModel, object):
+
+    ### The ORM mapping for the object 
+    ### This creates the table in the database (once only)
+    ### and sets up the mapping from object->database
     __tablename__ = "QuestionnaireResponse"
     resourceType = Column(String)
-    id = Column(String(450), primary_key=True) 
+    uid = Column(String(100), primary_key=True)
+    id = Column(String) 
     text = Column(String)
     identifier = Column(String)
     #basedOn = relationship("Reference")
@@ -28,6 +41,7 @@ class QuestionnaireResponse(BaseModel, object):
     def __init__(self):
 
         self.resourceType = "QuestionnaireResponse" 
+        self.uid = uuid.uuid4().hex
         self.id = None
         self.text = None
         self.contained = []
@@ -43,6 +57,10 @@ class QuestionnaireResponse(BaseModel, object):
         self.source = None
         self.item = []
 
+
+    ### This function takes in the posted JSON from the request
+    ### and fills the newly created object with the data,
+    ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict):
         for key in json_dict:
             if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
@@ -51,21 +69,26 @@ class QuestionnaireResponse(BaseModel, object):
                 items_list = json_dict[key]
                 for item_dict in items_list:
                     new_item = QuestionnaireResponseItem()
-                    new_item.update_with_dict(item_dict, json_dict["id"], None)
+                    new_item.update_with_dict(item_dict, self.uid, None)
                     self.item.append(new_item)
             elif key == "contained":
                 contained_list = json_dict[key]
                 for entry in contained_list:
                     contained_item = Contained()
-                    contained_item.update(json_dict["id"], entry)
+                    contained_item.update(self.uid, entry)
                     self.contained.append(contained_item)
             else:
                 setattr(self, key, json_dict[key])
         return
 
+
+    ### Connects to the database given the authorised connection string
+    ### and creates the tables if they are not already created, 
+    ### before saving off the Questionnaire, and all attached child objects 
     def save(self):
         connect_str = self._get_conn_string()
         try: 
+            return_uid = self.uid
             engine = create_engine(connect_str)
             BaseModel.metadata.create_all(engine)
             session = Session(engine)
@@ -74,24 +97,57 @@ class QuestionnaireResponse(BaseModel, object):
             self._save_child_elements(session)
             session.commit()
             session.close()
-            return True
+            return return_uid
         except Exception as e:
             return str(e)
 
 
-    def load(self, param, value):
+    ### Takes in the query parameters from the GET request
+    ### and returns the JSON form of the questionnaire requested 
+    def load(self, query):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
-            kwargs = {param : value}
-            questionnaire_response = session.query(QuestionnaireResponse).filter_by(**kwargs).one()
-            retrieved_json = questionnaire_response._to_json()
+            #kwargs = {param : value}
+            if 'uid' in query.keys():
+                retrieved_response = session.query(QuestionnaireResponse).filter_by(**query).one()
+                retrieved_json = retrieved_response._to_json()
+            else:
+                logging.info('---start query----')
+                start_time = time.time()
+                retrieved_responses = session.query(QuestionnaireResponse).filter_by(**query).all()
+                logging.info((time.time() - start_time))
+                logging.info('---end query----')
+                retrieved_json = []
+                for res in retrieved_responses:
+                    logging.info('---start tojson----')
+                    start_time = time.time()
+                    json_dict = res._to_json()
+                    logging.info((time.time() - start_time))
+                    logging.info('----end tojson---')
+                    retrieved_json.append(json_dict)
+                retrieved_json = json.dumps(retrieved_json)
             session.close()
             return retrieved_json
         except Exception as e:
             return str(e)
 
+    def delete(self, uid):
+        connect_str = self._get_conn_string()
+        try:
+            engine = create_engine(connect_str)
+            session = Session(engine)
+            res = session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid)
+            session.delete(res)
+            session.commit()
+            session.close()
+            return True
+        except Exception as e:
+            return e
+
+    ### Saves all child elements associated with the Questionnaire
+    ### by recursively adding all items and codes.
     def _save_child_elements(self, session):
         for item in self.item:
             item._save(session)
@@ -99,6 +155,8 @@ class QuestionnaireResponse(BaseModel, object):
             contained._save(session)
         return
 
+    ### converts the Questionnaire object into a dictionary 
+    ### that can then be JSONified and returned through a (GET)
     def _to_dict(self):
         result = OrderedDict()
         mapper = inspect(self)
@@ -121,6 +179,9 @@ class QuestionnaireResponse(BaseModel, object):
         return result
 
 
+    ### Return the list of questionnaireResponseItems 
+    ### in json format of nested dicts to be returned 
+    ### and placed into the response json
     def _build_item_list(self, list_of_items):
     
         item_dicts = self._items_to_dicts(list_of_items)
@@ -149,10 +210,27 @@ class QuestionnaireResponse(BaseModel, object):
         self._delete_unnecessary_fields(item_dicts, answer_dicts)
         return json.dumps(parent_list, indent=4)
 
+   ### return the QuestionnaireResponse in a JSON format
     def _to_json(self):
         return json.dumps(self._to_dict(), indent=4)
+    
+    
+    ### create the connection string for the database
+    ### which will eventually take in an authorised token
+    def _get_conn_string(self):
+        server = "tcp:fhir-questionnaire-server.database.windows.net"
+        database = "questionnaire-database"
+        username = "bencharlton"
+        password = "Benazure123"
+        driver = '{ODBC Driver 17 for SQL Server}'
+        #os.environ["SQL_CONNECTION_STRING"]
+        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
+        connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
+        return connect_str
 
-    def _create_helper_fields(self,item_dicts, answer_dicts):
+
+    @staticmethod
+    def _create_helper_fields(item_dicts, answer_dicts):
         parent_list = []
         nesting_check = 0
         for entry in item_dicts:
@@ -166,7 +244,8 @@ class QuestionnaireResponse(BaseModel, object):
             entry["item"] = []
         return parent_list, nesting_check
 
-    def _delete_unnecessary_fields(self, item_dicts, answer_dicts):
+    @staticmethod
+    def _delete_unnecessary_fields(item_dicts, answer_dicts):
         for entry in item_dicts:
             del entry["parent_id"]
             del entry["answer_id"]
@@ -181,24 +260,16 @@ class QuestionnaireResponse(BaseModel, object):
                 del entry["item"]
         return
 
-    def _get_conn_string(self):
-        server = "tcp:fhir-questionnaire-server.database.windows.net"
-        database = "questionnaire-database"
-        username = "bencharlton"
-        password = "Benazure123"
-        driver = '{ODBC Driver 17 for SQL Server}'
-        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
-        connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
-        return connect_str
-
-    def _items_to_dicts(self, item_list):
+    @staticmethod
+    def _items_to_dicts(item_list):
         dict_list = []
         for item in item_list:
             dict_to_add = item.to_dict()
             dict_list.append(dict_to_add)
         return dict_list
 
-    def _get_answer_dicts(self, list_of_items):
+    @staticmethod
+    def _get_answer_dicts(list_of_items):
         answer_dict_list = []
         for item in list_of_items:
             mapper = inspect(item)
@@ -213,7 +284,7 @@ class QuestionnaireResponse(BaseModel, object):
 class Contained(BaseModel, object):
     __tablename__ = "Contained"
     id = Column(Integer, primary_key=True)
-    response_id = Column(String(450), ForeignKey('QuestionnaireResponse.id')) 
+    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid')) 
     response = relationship("QuestionnaireResponse", back_populates="contained")
     string = Column(String)
 
@@ -315,7 +386,7 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
 class QuestionnaireResponseItem(BaseModel, object):
     __tablename__ = "QuestionnaireResponseItem"
     id = Column(Integer, primary_key=True)
-    response_id = Column(String(450), ForeignKey('QuestionnaireResponse.id'))
+    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid'))
     questionnaireResponse = relationship("QuestionnaireResponse", cascade='delete', back_populates="item", foreign_keys=[response_id])
     parent_id = Column(String)
     linkId = Column(String)

@@ -12,6 +12,12 @@ URIBASE = 'base uri for server here'
 
 #query = {'lat':'45', 'lon':'180'}
 #response = requests.get('http://api.open-notify.org/iss-pass.json', params=query)
+    # url = urljoin(URIBASE, path)
+    # headers = {
+    #     'Content-type': FHIRJSONMimeType,
+    #     'Accept': FHIRJSONMimeType,
+    #     'Accept-Charset': 'UTF-8',
+    # }
 
 
 def get_questionnaire(query):
@@ -25,25 +31,32 @@ def post_questionnaire(resource_json):
     res = created_questionnaire.save()
     return res
 
+def get_questionnaireResponse(query):
+    retrieved_response = QuestionnaireResponse()
+    data = retrieved_response.load(query)
+    return data
 
-def get_questionnaireResponse(path, query):
-    headers = {'Accept': 'application/json'}
-    return 
-
-def post_questionnaireResponse(path, resource_json):
-    url = urljoin(URIBASE, path)
-    headers = {
-        'Content-type': FHIRJSONMimeType,
-        'Accept': FHIRJSONMimeType,
-        'Accept-Charset': 'UTF-8',
-    }
-    created_response = Questionnaire()
+def post_questionnaireResponse(resource_json):
+    created_response = QuestionnaireResponse()
     created_response.update_with_json(resource_json)
     res = created_response.save()
     return res
 
+def delete_questionnaire(uid):
+    ques_to_delete = Questionnaire()
+    ques_to_delete.delete(uid)
+    return True
+
+def delete_questionnaireResponse(uid):
+    res_to_delete = QuestionnaireResponse()
+    res_to_delete.delete(uid)
+    return True
+
+def authenticate_token(token):
+    return True
+
 
 # f = open('questionnaire.json',)
 # data = json.load(f)
-# val = post_questionnaire(data)
+# val = post_questionnaireResponse(data)
 # print(val)

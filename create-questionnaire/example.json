@@ -1,6 +1,6 @@
 {
   "resourceType": "Questionnaire",
-  "id": "3142",
+  "id": "12345",
   "text": {
     "status": "generated",
     "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">\n      <pre>\n            1.Comorbidity?\n              1.1 Cardial Comorbidity\n                1.1.1 Angina?\n                1.1.2 MI?\n              1.2 Vascular Comorbidity?\n              ...\n            Histopathology\n              Abdominal\n                pT category?\n              ...\n          </pre>\n    </div>"
@@ -84,33 +84,8 @@
                       "prefix": "1.1.1",
                       "type": "choice",
                       "answerValueSet": "http://hl7.org/fhir/ValueSet/yesnodontknow"
-                    },
-                    {
-                      "linkId": "1.1.1.1.2",
-                      "code": [
-                        {
-                          "system": "http://snomed.info/sct",
-                          "code": "22298006",
-                          "display": "Myocardial infarction (disorder)"
-                        }
-                      ],
-                      "prefix": "1.1.2",
-                      "type": "choice",
-                      "answerValueSet": "http://hl7.org/fhir/ValueSet/yesnodontknow"
                     }
                   ]
-                },
-                {
-                  "linkId": "1.1.1.2",
-                  "code": [
-                    {
-                      "system": "http://example.org/system/code/questions",
-                      "code": "COMORBVAS"
-                    }
-                  ],
-                  "prefix": "1.2",
-                  "type": "choice",
-                  "answerValueSet": "http://hl7.org/fhir/ValueSet/yesnodontknow"
                 }
               ]
             }

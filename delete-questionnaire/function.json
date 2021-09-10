@@ -6,10 +6,8 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [
-        "post"
-      ],
-      "route": "questionnaire" 
+      "methods": [ "delete" ],
+      "route": "questionnaire/{uid}"
     },
     {
       "type": "http",

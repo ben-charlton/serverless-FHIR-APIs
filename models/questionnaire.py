@@ -7,7 +7,9 @@ import json
 from collections import OrderedDict
 from functools import cmp_to_key
 import uuid
+import time
 import os
+import logging
 
 BaseModel = declarative_base(name='BaseModel')
 
@@ -106,16 +108,42 @@ class Questionnaire(BaseModel, object):
             engine = create_engine(connect_str)
             session = Session(engine)
             #kwargs = {param : value}
-            try:
+            if 'uid' in query.keys():
                 retrieved_questionnaire = session.query(Questionnaire).filter_by(**query).one()
-            except Exception as e:
-                print("error")
-                print(str(e))
-            retrieved_json = retrieved_questionnaire._to_json()
+                retrieved_json = retrieved_questionnaire._to_json()
+            else:
+                logging.info('---start query----')
+                start_time = time.time()
+                retrieved_questionnaires = session.query(Questionnaire).filter_by(**query).all()
+                logging.info((time.time() - start_time))
+                logging.info('---end query----')
+                retrieved_json = []
+                for ques in retrieved_questionnaires:
+                    logging.info('---start tojson----')
+                    start_time = time.time()
+                    json_dict = ques._to_json()
+                    logging.info((time.time() - start_time))
+                    logging.info('----end tojson---')
+                    retrieved_json.append(json_dict)
+                retrieved_json = json.dumps(retrieved_json, indent=4)
             session.close()
             return retrieved_json
-        except:
-            return None
+        except Exception as e:
+            return str(e)
+
+    def delete(self, uid):
+        connect_str = self._get_conn_string()
+        try:
+            engine = create_engine(connect_str)
+            session = Session(engine)
+            ques = session.query(Questionnaire).filter(Questionnaire.uid==uid)
+            session.delete(ques)
+            session.commit()
+            session.close()
+            return True
+        except Exception as e:
+            return e
+
 
     ### Saves all child elements associated with the Questionnaire
     ### by recursively adding all items and codes.
@@ -130,12 +158,16 @@ class Questionnaire(BaseModel, object):
     ### that can then be JSONified and returned through a (GET)
     def _to_dict(self):
         result = OrderedDict()
+        start_time = time.time()     
         mapper = inspect(self)
+        #logging.info("--- inspection time %s seconds ---" % (time.time() - start_time))
         for attribute in mapper.attrs:
+            sstart_time = time.time()        
             key = attribute.key
-            if attribute.value == None:
+            if attribute.value == None or key == "uid":
                 continue
             if key == "item":
+                start_time = time.time()
                 result["item"] = self._build_item_list(attribute.value)
             elif key == "text":
                 result["text"] = json.loads(getattr(self, key))
@@ -147,6 +179,8 @@ class Questionnaire(BaseModel, object):
                     result[key] = code_list
             else:
                 result[key] = getattr(self, key)
+            #logging.info('--attribute here is %s--' % key)
+            #logging.info("--- time for is %s seconds ---" % (time.time() - sstart_time))
         return result
    
    
@@ -160,7 +194,9 @@ class Questionnaire(BaseModel, object):
     ### to be returned 
     def _build_item_list(self, list_of_items):
 
+        start_time = time.time()
         list_of_dicts = self._item_to_dict(list_of_items)
+        #logging.info("--- building dicts takes %s seconds ---" % (time.time() - start_time))
         parent_list = []
         nesting_check = 0
 
@@ -170,7 +206,7 @@ class Questionnaire(BaseModel, object):
             else:
                 parent_list.append(entry)
             entry["item"] = []
-
+        start_time = time.time()
         while (nesting_check == 1):
             nesting_check = 0
             for item1 in list_of_dicts:
@@ -179,6 +215,7 @@ class Questionnaire(BaseModel, object):
                         item1["parent_id"] = None
                         item2["item"].append(item1)
                         nesting_check = 1
+        #logging.info("--- building list nesting loops is %s seconds ---" % (time.time() - start_time))
 
         for entry in list_of_dicts:
             del entry["parent_id"]
@@ -194,7 +231,7 @@ class Questionnaire(BaseModel, object):
         # username = "bencharlton"
         # password = "Benazure123"
         # driver = '{ODBC Driver 17 for SQL Server}'
-        # #os.environ["CONNECTION_STRING"]
+        #os.environ["SQL_CONNECTION_STRING"] 
         odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:fhir-questionnaire-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Benazure123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
@@ -207,7 +244,9 @@ class Questionnaire(BaseModel, object):
     def _item_to_dict(item_list):
         dict_list = []
         for item in item_list:
+            start = time.time()
             dict_to_add = item.to_dict()
+            logging.info("--- each dict takes %s seconds ---" % (time.time() - start))
             dict_list.append(dict_to_add)
         return dict_list
 
@@ -392,7 +431,9 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
     def to_dict(self):
         result = OrderedDict()
         mapper = inspect(self)
+        #logging.info('--- for enable to dict---')
         for attribute in mapper.attrs:
+            start = time.time()
             key = attribute.key
             if key == "itemId" or key == "id":
                 pass
@@ -401,6 +442,7 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
             else:
                 if getattr(self, key) is not None:
                     result[key] =  getattr(self, key)
+        #logging.info("--- takes %s seconds ---" % (time.time() - start))
         return result
 
     def update_with_dict(self, json_dict):

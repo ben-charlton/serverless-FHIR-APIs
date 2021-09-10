@@ -15,7 +15,6 @@ class QuestionnaireResponseItem(BaseModel, object):
     text = Column(String)
     answer = relationship("ResponseItemAnswer")
 
-    
     def __init__(self):
        
         self.linkId = None

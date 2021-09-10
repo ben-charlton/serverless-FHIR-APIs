@@ -11,7 +11,7 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
     valueInteger = Column(Integer)
     valueDate = Column(Date)
     valueDateTime = Column(DateTime)
-    valueTime = Columnm(DateTime)
+    valueTime = Column(DateTime)
     valueString = Column(String)
     valueUri = Column(String)
     valueAttachment = Column(String)
@@ -38,11 +38,10 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
 
     def update_with_dict(self, item_dict):
         for key in item_dict:
-            if k
             if key == "item":
                 items_list = item_dict[key]
                 for single_item_dict in items_list:
-                    new_item = QuestionnaireItem()
+                    new_item = QuestionnaireResponseItem()
                     new_item.update_with_dict(single_item_dict, response_id, item_dict['linkId'])
                     self.item.append(new_item)  
             else:
