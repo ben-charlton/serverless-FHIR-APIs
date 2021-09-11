@@ -8,7 +8,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     res = delete_questionnaire(req.route_params.get('uid'))
 
-
     if (res==True):
         return func.HttpResponse(body="successfully deleted resource", status_code=200)
     else:

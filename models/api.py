@@ -49,8 +49,8 @@ def delete_questionnaire(uid):
 
 def delete_questionnaireResponse(uid):
     res_to_delete = QuestionnaireResponse()
-    res_to_delete.delete(uid)
-    return True
+    result = res_to_delete.delete(uid)
+    return result
 
 def authenticate_token(token):
     return True

@@ -35,8 +35,8 @@ class QuestionnaireResponse(BaseModel, object):
     authored = Column(String)
     author = Column(String)
     source = Column(String)
-    item = relationship('QuestionnaireResponseItem',cascade='delete', back_populates="questionnaireResponse", lazy = True)
-    contained = relationship("Contained", cascade='delete', lazy=True, back_populates="response")
+    item = relationship('QuestionnaireResponseItem',cascade='delete', back_populates="questionnaireResponse", lazy = True, passive_deletes=True)
+    contained = relationship("Contained", cascade='delete', lazy=True, back_populates="response", passive_deletes=True)
     
     def __init__(self):
 
@@ -138,8 +138,9 @@ class QuestionnaireResponse(BaseModel, object):
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
-            res = session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid)
-            session.delete(res)
+            session.query(Contained).filter(Contained.response_id==uid).delete()
+            session.query(QuestionnaireResponseItem).filter(QuestionnaireResponseItem.response_id==uid).delete()
+            session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid).delete()
             session.commit()
             session.close()
             return True
@@ -207,7 +208,7 @@ class QuestionnaireResponse(BaseModel, object):
                         item1["answer"].append(answer)
                         answer["item_id"] = None
 
-        self._delete_unnecessary_fields(item_dicts, answer_dicts)
+        self._delete_fields(item_dicts, answer_dicts)
         return json.dumps(parent_list, indent=4)
 
    ### return the QuestionnaireResponse in a JSON format
@@ -245,7 +246,7 @@ class QuestionnaireResponse(BaseModel, object):
         return parent_list, nesting_check
 
     @staticmethod
-    def _delete_unnecessary_fields(item_dicts, answer_dicts):
+    def _delete_fields(item_dicts, answer_dicts):
         for entry in item_dicts:
             del entry["parent_id"]
             del entry["answer_id"]
@@ -284,8 +285,8 @@ class QuestionnaireResponse(BaseModel, object):
 class Contained(BaseModel, object):
     __tablename__ = "Contained"
     id = Column(Integer, primary_key=True)
-    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid')) 
-    response = relationship("QuestionnaireResponse", back_populates="contained")
+    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid' )) 
+    response = relationship("QuestionnaireResponse", back_populates="contained", passive_deletes=True)
     string = Column(String)
 
     def __init__(self):
@@ -309,7 +310,7 @@ class Contained(BaseModel, object):
 class QuestionnaireResponseItemAnswer(BaseModel, object):
     __tablename__ = "QuestionnaireResponseItemAnswer"
     id = Column(Integer, primary_key=True)
-    item_FK = Column(Integer, ForeignKey('QuestionnaireResponseItem.id'))
+    item_FK = Column(Integer, ForeignKey('QuestionnaireResponseItem.id', ondelete="cascade"))
     item_id = Column(String)
     answer_counter = Column(Integer)
     valueBoolean = Column(Boolean)
@@ -386,14 +387,14 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
 class QuestionnaireResponseItem(BaseModel, object):
     __tablename__ = "QuestionnaireResponseItem"
     id = Column(Integer, primary_key=True)
-    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid'))
-    questionnaireResponse = relationship("QuestionnaireResponse", cascade='delete', back_populates="item", foreign_keys=[response_id])
+    response_id = Column(String(100), ForeignKey('QuestionnaireResponse.uid', ondelete="cascade"))
+    questionnaireResponse = relationship("QuestionnaireResponse", cascade='delete', back_populates="item", foreign_keys=[response_id], passive_deletes=True)
     parent_id = Column(String)
     linkId = Column(String)
     definition = Column(String)
     text = Column(String)
     answer_id = Column(Integer)
-    answer = relationship("QuestionnaireResponseItemAnswer", cascade='delete')
+    answer = relationship("QuestionnaireResponseItemAnswer", cascade='delete', passive_deletes=True)
 
 
     def __init__(self):
