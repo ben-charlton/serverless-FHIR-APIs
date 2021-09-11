@@ -224,7 +224,7 @@ class QuestionnaireResponse(BaseModel, object):
         password = "Benazure123"
         driver = '{ODBC Driver 17 for SQL Server}'
         #os.environ["SQL_CONNECTION_STRING"]
-        odbc_str = 'DRIVER='+driver+';SERVER='+server+';PORT=1433;UID='+username+';DATABASE='+ database + ';PWD='+ password
+        odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:questionnaire-sql-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Bensql123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
 

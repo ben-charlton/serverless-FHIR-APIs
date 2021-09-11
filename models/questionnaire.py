@@ -36,7 +36,7 @@ class Questionnaire(BaseModel, object):
     description = Column(String)
     purpose = Column(String)
     copyright = Column(String)
-    code = relationship("Coding", lazy=True)
+    code = relationship("Coding", lazy=True, cascade="all, delete", passive_deletes=True)
     item = relationship('QuestionnaireItem', back_populates="questionnaire", lazy = True)
 
     def __init__(self):
@@ -136,8 +136,8 @@ class Questionnaire(BaseModel, object):
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
-            ques = session.query(Questionnaire).filter(Questionnaire.uid==uid)
-            session.delete(ques)
+            session.query(QuestionnaireItem).filter(QuestionnaireItem.quid==uid).delete()
+            session.query(Questionnaire).filter(Questionnaire.uid==uid).delete()
             session.commit()
             session.close()
             return True
@@ -232,7 +232,7 @@ class Questionnaire(BaseModel, object):
         # password = "Benazure123"
         # driver = '{ODBC Driver 17 for SQL Server}'
         #os.environ["SQL_CONNECTION_STRING"] 
-        odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:fhir-questionnaire-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Benazure123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+        odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:questionnaire-sql-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Bensql123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
 
@@ -257,7 +257,7 @@ class QuestionnaireItemInitial(BaseModel,object):
     
     __tablename__ = "QuestionnaireItemInitial"
     id = Column(Integer, primary_key=True)
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     valueBoolean = Column(Boolean)
     valueDecimal = Column(Float)
     valueInteger = Column(Integer)
@@ -281,7 +281,7 @@ class QuestionnaireItemInitial(BaseModel,object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "itemId" or key == "id":
+            if key == "iid" or key == "id":
                 pass
             else:
                 if getattr(self, key) is not None:
@@ -310,7 +310,7 @@ class QuestionnaireItemInitial(BaseModel,object):
 class QuestionnaireItemAnswerOption(BaseModel, object):
     __tablename__ = "QuestionnaireItemAnswerOption"
     id = Column(Integer, primary_key=True)
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     valueInteger = Column(Integer)
     valueDate = Column(Date)
     valueTime = Column(DateTime)
@@ -332,7 +332,7 @@ class QuestionnaireItemAnswerOption(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "itemId" or key == "id":
+            if key == "iid" or key == "id":
                 pass
             else:
                 if getattr(self, key) is not None:
@@ -362,8 +362,8 @@ class Coding(BaseModel, object):
     
     __tablename__ = "Coding"
     id = Column(Integer, primary_key=True)
-    questionnaireId = Column(String(100), ForeignKey('Questionnaire.uid'))
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    quid = Column(String(100), ForeignKey('Questionnaire.uid', ondelete="cascade"))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     system = Column(String)
     version = Column(String)
     code = Column(String)
@@ -383,7 +383,7 @@ class Coding(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "id" or key == "questionnaireId" or key == "itemId":
+            if key == "id" or key == "quid" or key == "iid":
                 pass
             else:
                 if getattr(self, key) is not None:
@@ -406,7 +406,7 @@ class Coding(BaseModel, object):
 class QuestionnaireItemEnableWhen(BaseModel,object):
     __tablename__ = "QuestionnaireItemEnableWhen"
     id = Column(Integer, primary_key=True)
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     question = Column(String)
     operator = Column(String)
     answerBoolean = Column(Boolean)
@@ -435,7 +435,7 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
         for attribute in mapper.attrs:
             start = time.time()
             key = attribute.key
-            if key == "itemId" or key == "id":
+            if key == "iid" or key == "id":
                 pass
             elif key == "answerCoding":
                 result[key] = json.loads(attribute.value)
@@ -464,27 +464,27 @@ class QuestionnaireItem(BaseModel, object):
     __tablename__ = "QuestionnaireItem"
     id = Column(Integer, primary_key=True)
     questionnaire = relationship("Questionnaire", back_populates="item")
-    questionnaire_id = Column(String(100), ForeignKey('Questionnaire.uid'))
+    quid = Column(String(100), ForeignKey('Questionnaire.uid'))
     parent_id = Column(String)
     linkId = Column(String)
     definition = Column(String)
-    code = relationship("Coding")
+    code = relationship("Coding", cascade="all, delete", passive_deletes=True)
     prefix = Column(String)
     text = Column(String)
     type = Column(String)
-    enableWhen = relationship("QuestionnaireItemEnableWhen")
+    enableWhen = relationship("QuestionnaireItemEnableWhen", cascade="all, delete", passive_deletes=True)
     enableBehavior = Column(String)
     required = Column(Boolean)
     repeats = Column(Boolean)
     readOnly = Column(Boolean)
     maxLength = Column(Integer)
     answerValueSet = Column(String)
-    answerOption = relationship("QuestionnaireItemAnswerOption")
-    initial = relationship("QuestionnaireItemInitial")
+    answerOption = relationship("QuestionnaireItemAnswerOption", cascade="all, delete", passive_deletes=True)
+    initial = relationship("QuestionnaireItemInitial", cascade="all, delete", passive_deletes=True)
 
 
     def __init__(self):
-        self.questionnaire_id = None
+        self.quid = None
         self.linkId = None
         self.definition = None
         self.code = []
@@ -502,8 +502,8 @@ class QuestionnaireItem(BaseModel, object):
         self.initial = []
         self.item = []
 
-    def update_with_dict(self, item_dict, questionnaire_id, parent_id=None):
-        self.questionnaire_id = questionnaire_id
+    def update_with_dict(self, item_dict, quid, parent_id=None):
+        self.quid = quid
         self.parent_id = parent_id
         for key in item_dict:
             if key == "enableWhen":
@@ -528,7 +528,7 @@ class QuestionnaireItem(BaseModel, object):
                 items_list = item_dict[key]
                 for single_item_dict in items_list:
                     new_item = QuestionnaireItem()
-                    new_item.update_with_dict(single_item_dict, questionnaire_id, item_dict['linkId'])
+                    new_item.update_with_dict(single_item_dict, quid, item_dict['linkId'])
                     self.item.append(new_item)  
             elif key == "code":
                 code_list = item_dict[key]
@@ -546,7 +546,7 @@ class QuestionnaireItem(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "questionnaire" or key == "questionnaire_id" or key == "id":
+            if key == "questionnaire" or key == "quid" or key == "id":
                 pass
             elif key == "parent_id":
                 result[key] = getattr(self, key)

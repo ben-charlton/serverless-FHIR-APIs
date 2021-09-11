@@ -44,8 +44,8 @@ def post_questionnaireResponse(resource_json):
 
 def delete_questionnaire(uid):
     ques_to_delete = Questionnaire()
-    ques_to_delete.delete(uid)
-    return True
+    res = ques_to_delete.delete(uid)
+    return res
 
 def delete_questionnaireResponse(uid):
     res_to_delete = QuestionnaireResponse()
