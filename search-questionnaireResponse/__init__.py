@@ -9,12 +9,10 @@ import json
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
-    logging.info('heeeere') 
 
     data = None
     try:
         data = get_questionnaireResponse(req.params)
-        logging.info(data)
     except Exception as e:
         error = "Error: " + str(e)
         return func.HttpResponse(body=error, status_code=500)

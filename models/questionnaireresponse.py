@@ -114,20 +114,12 @@ class QuestionnaireResponse(BaseModel, object):
                 retrieved_response = session.query(QuestionnaireResponse).filter_by(**query).one()
                 retrieved_json = retrieved_response._to_json()
             else:
-                logging.info('---start query----')
-                start_time = time.time()
                 retrieved_responses = session.query(QuestionnaireResponse).filter_by(**query).all()
-                logging.info((time.time() - start_time))
-                logging.info('---end query----')
                 retrieved_json = []
                 for res in retrieved_responses:
-                    logging.info('---start tojson----')
-                    start_time = time.time()
-                    json_dict = res._to_json()
-                    logging.info((time.time() - start_time))
-                    logging.info('----end tojson---')
+                    json_dict = res._to_dict()
                     retrieved_json.append(json_dict)
-                retrieved_json = json.dumps(retrieved_json)
+                retrieved_json = json.dumps(retrieved_json, indent=4)
             session.close()
             return retrieved_json
         except Exception as e:

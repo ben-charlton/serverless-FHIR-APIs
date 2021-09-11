@@ -112,18 +112,10 @@ class Questionnaire(BaseModel, object):
                 retrieved_questionnaire = session.query(Questionnaire).filter_by(**query).one()
                 retrieved_json = retrieved_questionnaire._to_json()
             else:
-                logging.info('---start query----')
-                start_time = time.time()
                 retrieved_questionnaires = session.query(Questionnaire).filter_by(**query).all()
-                logging.info((time.time() - start_time))
-                logging.info('---end query----')
                 retrieved_json = []
                 for ques in retrieved_questionnaires:
-                    logging.info('---start tojson----')
-                    start_time = time.time()
-                    json_dict = ques._to_json()
-                    logging.info((time.time() - start_time))
-                    logging.info('----end tojson---')
+                    json_dict = ques._to_dict()
                     retrieved_json.append(json_dict)
                 retrieved_json = json.dumps(retrieved_json, indent=4)
             session.close()
