@@ -7,6 +7,8 @@ import logging
     #    return func.HttpResponse(body="Error: Invalid Query", status_code=500)
     #    else:
 
+
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
     
@@ -17,6 +19,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         error = "Error: " + str(e)
         return func.HttpResponse(body=error, status_code=500)
     return func.HttpResponse(body=data, headers={"content-type": "application/json"}, status_code=200)
+
+    
 
 def validate_params(params):
     for key in params.keys():

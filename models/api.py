@@ -1,5 +1,4 @@
 import json
-import requests
 import urllib
 import logging
 from urllib.parse import urljoin
