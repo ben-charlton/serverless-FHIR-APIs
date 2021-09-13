@@ -10,6 +10,8 @@ and using Azure SQL Database as the persistence provider.
 Currently, there is support for the following API's under the FHIR specification;
 
 1. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire/{uid}
+ > Returns the Questionnaire resource in JSON format specified by the uid
+2. [POST] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire
 
 
 ### Installing required modules
