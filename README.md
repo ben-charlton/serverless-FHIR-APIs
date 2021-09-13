@@ -9,12 +9,27 @@ and using Azure SQL Database as the persistence provider.
 
 Currently, there is support for the following API's under the FHIR specification;
 
-1. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire/{uid}
- > Returns the Questionnaire resource in JSON format specified by the uid
-2. [POST] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire
+1. [POST] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire
+  > Sends the Questionnaire resource specified in JSON format to the Azure SQL Database 
+  > and returns the generated uid where it is stored. 
+2. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire/{uid}
+ > Returns the Questionnaire resource in JSON format specified by the uid.
+3. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire?name=&id=&title=
+ > Returns the list of Questionnaire resources matching the query in JSON format.
+4. [DELETE] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaire/{uid}
+  > Deletes the specified Questionnaire resource from the database.
+5. [POST] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse
+  > Sends the QuestionnaireResponse resource specified in JSON format to the Azure SQL Database 
+  > and returns the generated uid where it is stored. 
+6. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/{uid}
+ > Returns the QuestionnaireResponse resource in JSON format specified by the uid.
+7. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse?name=&id=&title=
+ > Returns the list of QuestionnaireResponse resources matching the query in JSON format.
+8. [DELETE] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/{uid}
+  > Deletes the specified QuestionnaireResponse resource from the database.
 
 
-### Installing required modules
+### Installing required modules to work with the 
 ```bash
 $ pip install -r requirements.txt
 ```
