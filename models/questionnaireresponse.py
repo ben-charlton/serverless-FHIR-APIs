@@ -211,13 +211,7 @@ class QuestionnaireResponse(BaseModel, object):
     ### create the connection string for the database
     ### which will eventually take in an authorised token
     def _get_conn_string(self):
-        server = "tcp:fhir-questionnaire-server.database.windows.net"
-        database = "questionnaire-database"
-        username = "bencharlton"
-        password = "Benazure123"
-        driver = '{ODBC Driver 17 for SQL Server}'
-        #os.environ["SQL_CONNECTION_STRING"]
-        odbc_str = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:questionnaire-sql-server.database.windows.net,1433;Database=questionnaire-database;Uid=bencharlton;Pwd=Bensql123;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+        odbc_str = os.environ["SQL_CONNECTION_STRING"] 
         connect_str = 'mssql+pyodbc:///?odbc_connect=' + urllib.parse.quote_plus(odbc_str)
         return connect_str
 
