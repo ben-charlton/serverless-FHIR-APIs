@@ -1,6 +1,4 @@
-![fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png){:class="img-responsive"}
-![fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png){:height="50%" width="50%"}
-![fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png){:height="700px" width="400px"}
+<img src="https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png" width="100" height="100">
 
 # serverless-FHIR-APIs
 
