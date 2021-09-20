@@ -1,4 +1,4 @@
-<img src="https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png" width="300" height="150">
+<img src="https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png" width="600" height="175">
 
 # serverless-FHIR-APIs
 
