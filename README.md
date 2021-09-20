@@ -1,3 +1,5 @@
+![Image of fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png)
+
 # serverless-FHIR-APIs
 
 A serverless solution for the management of questionnaire resources based on the [FHIR specification](https://www.hl7.org/fhir/).
