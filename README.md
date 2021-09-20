@@ -1,5 +1,4 @@
-<img src="https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png" width="100" height="100">
-
+<img src="https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png" width="300" height="150">
 # serverless-FHIR-APIs
 
 A serverless solution for the management of questionnaire resources based on the [FHIR specification](https://www.hl7.org/fhir/).
