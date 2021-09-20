@@ -1,4 +1,4 @@
-![Image of fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png =250x250)
+![Image of fhir](https://miro.medium.com/max/1400/1*GfBkvGMAIH9ptyEB6rM5Tw.png | width=100)
 
 # serverless-FHIR-APIs
 
