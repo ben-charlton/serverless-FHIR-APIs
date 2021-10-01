@@ -36,7 +36,8 @@ class User(BaseModel):
             return str(e)
 
 
-    def save(self, domain):
+    # should take domain in future
+    def save(self):
         connect_str = self._get_conn_string()
         try:
             return_uid = self.user_id
