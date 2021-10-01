@@ -24,6 +24,7 @@ class QuestionnaireResponse(BaseModel, object):
     resourceType = Column(String)
     uid = Column(String(100), primary_key=True)
     id = Column(String) 
+    user_id = Column(String)
     text = Column(String)
     identifier = Column(String)
     #basedOn = relationship("Reference")
@@ -43,6 +44,7 @@ class QuestionnaireResponse(BaseModel, object):
         self.resourceType = "QuestionnaireResponse" 
         self.uid = uuid.uuid4().hex
         self.id = None
+        self.user_id = None
         self.text = None
         self.contained = []
         self.identifier = None
@@ -61,7 +63,8 @@ class QuestionnaireResponse(BaseModel, object):
     ### This function takes in the posted JSON from the request
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
-    def update_with_json(self, json_dict):
+    def update_with_json(self, json_dict, user_id):
+        self.user_id = user_id
         for key in json_dict:
             if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
@@ -104,17 +107,17 @@ class QuestionnaireResponse(BaseModel, object):
 
     ### Takes in the query parameters from the GET request
     ### and returns the JSON form of the questionnaire requested 
-    def load(self, query):
+    def load(self, query, user_id):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
             #kwargs = {param : value}
             if 'uid' in query.keys():
-                retrieved_response = session.query(QuestionnaireResponse).filter_by(**query).one()
+                retrieved_response = session.query(QuestionnaireResponse).filter_by(**query, user_id=user_id).one()
                 retrieved_json = retrieved_response._to_json()
             else:
-                retrieved_responses = session.query(QuestionnaireResponse).filter_by(**query).all()
+                retrieved_responses = session.query(QuestionnaireResponse).filter_by(**query, user_id=user_id).all()
                 retrieved_json = []
                 for res in retrieved_responses:
                     json_dict = res._to_dict()

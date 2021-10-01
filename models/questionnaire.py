@@ -26,6 +26,7 @@ class Questionnaire(BaseModel, object):
     resourceType = Column(String)
     uid = Column(String(100), primary_key=True)
     id = Column(String) 
+    user_id = Column(String)
     text = Column(String)
     url = Column(String)
     name = Column(String)
@@ -43,6 +44,7 @@ class Questionnaire(BaseModel, object):
         self.resourceType = "Questionnaire"
         self.uid = uuid.uuid4().hex
         self.id = None
+        self.user_id = None
         self.text = None
         self.url = None
         self.name = None 
@@ -59,7 +61,8 @@ class Questionnaire(BaseModel, object):
     ### This function takes in the posted JSON from the request
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
-    def update_with_json(self, json_dict):
+    def update_with_json(self, json_dict, user_id):
+        self.user_id = user_id
         for key in json_dict:
             if key == "code":
                 code_list = json_dict[key]
@@ -102,17 +105,17 @@ class Questionnaire(BaseModel, object):
 
     ### Takes in the query parameters from the GET request
     ### and returns the JSON form of the questionnaire requested 
-    def load(self, query):
+    def load(self, query, user_id):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
             #kwargs = {param : value}
             if 'uid' in query.keys():
-                retrieved_questionnaire = session.query(Questionnaire).filter_by(**query).one()
+                retrieved_questionnaire = session.query(Questionnaire).filter_by(**query, user_id=user_id).one()
                 retrieved_json = retrieved_questionnaire._to_json()
             else:
-                retrieved_questionnaires = session.query(Questionnaire).filter_by(**query).all()
+                retrieved_questionnaires = session.query(Questionnaire).filter_by(**query, user_id=user_id).all()
                 retrieved_json = []
                 for ques in retrieved_questionnaires:
                     json_dict = ques._to_dict()

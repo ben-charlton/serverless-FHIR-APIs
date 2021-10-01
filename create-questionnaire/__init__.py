@@ -6,6 +6,7 @@ import json
 import urllib
 import sqlalchemy 
 from models.api import post_questionnaire
+from models.api import verify_user
 
 #AuthenticationHeaderValue("Bearer", Request.Headers["X-MS-TOKEN-AAD-ACCESS-TOKEN"]);
 
@@ -13,9 +14,13 @@ from models.api import post_questionnaire
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
+    user_id = req.headers.get('authorisation')
+    if not verify_user(user_id):
+        return func.HttpResponse(status_code=401)
+
     res = None
     try:
-        res = post_questionnaire(req.get_json())
+        res = post_questionnaire(req.get_json(), user_id)
     except Exception as e:
         error = "Error: " + str(e)
 

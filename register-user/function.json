@@ -6,8 +6,7 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [ "get" ],
-      "route": "questionnaireResponse"
+      "methods": [ "post" ]
     },
     {
       "type": "http",

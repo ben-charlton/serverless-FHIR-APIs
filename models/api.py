@@ -1,61 +1,48 @@
-import json
-import urllib
-import logging
-from urllib.parse import urljoin
+from models.user import User
 from .questionnaireresponse import QuestionnaireResponse
 from .questionnaire import Questionnaire
 
-# default type is fhir+json, as the server will only support JSON objects (for now)
-FHIRJSONMimeType = 'application/fhir+json'
-URIBASE = 'base uri for server here'
 
-#query = {'lat':'45', 'lon':'180'}
-#response = requests.get('http://api.open-notify.org/iss-pass.json', params=query)
-    # url = urljoin(URIBASE, path)
-    # headers = {
-    #     'Content-type': FHIRJSONMimeType,
-    #     'Accept': FHIRJSONMimeType,
-    #     'Accept-Charset': 'UTF-8',
-    # }
-
-
-def get_questionnaire(query):
+def get_questionnaire(query, user_id):
     retrieved_questionnaire = Questionnaire()
-    data = retrieved_questionnaire.load(query)
+    data = retrieved_questionnaire.load(query, user_id)
     return data
 
-def post_questionnaire(resource_json):
+def post_questionnaire(resource_json, user_id):
     created_questionnaire = Questionnaire()
-    created_questionnaire.update_with_json(resource_json)
+    created_questionnaire.update_with_json(resource_json, user_id)
     res = created_questionnaire.save()
     return res
 
-def get_questionnaireResponse(query):
+def get_questionnaireResponse(query, user_id):
     retrieved_response = QuestionnaireResponse()
-    data = retrieved_response.load(query)
+    data = retrieved_response.load(query, user_id)
     return data
 
-def post_questionnaireResponse(resource_json):
+def post_questionnaireResponse(resource_json, user_id):
     created_response = QuestionnaireResponse()
-    created_response.update_with_json(resource_json)
+    created_response.update_with_json(resource_json, user_id)
     res = created_response.save()
     return res
 
-def delete_questionnaire(uid):
+def delete_questionnaire(uid, user_id):
     ques_to_delete = Questionnaire()
-    res = ques_to_delete.delete(uid)
+    res = ques_to_delete.delete(uid, user_id)
     return res
 
-def delete_questionnaireResponse(uid):
+def delete_questionnaireResponse(uid, user_id):
     res_to_delete = QuestionnaireResponse()
-    result = res_to_delete.delete(uid)
+    result = res_to_delete.delete(uid, user_id)
     return result
 
-def authenticate_token(token):
-    return True
+# should take domain name in future
+def register_user():
+    user = User()
+    uid = user.save()
+    return uid
 
+def verify_user(user_id):
+    user = User()
+    verification = user.verify(user_id)
+    return verification
 
-# f = open('questionnaire.json',)
-# data = json.load(f)
-# val = post_questionnaireResponse(data)
-# print(val)

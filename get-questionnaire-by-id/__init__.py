@@ -3,22 +3,13 @@ import json
 import azure.functions as func
 import os
 from models.api import get_questionnaire
-
-    # logging.info(f"Headers: {par}")
-    # logging.info(f"Params: {req.params}")
-    # logging.info(f"Route Params: {req.route_params}")
-    # logging.info(f"Body: {req.get_body()}")
-
-
-    # 1. verify auth token
-    #   if not auth
-    #       return 403
-
-    #if !authenticate(req):
-    #    return 403
-    #7a97263ace0b47a882084bfa425a96b2
+from models.api import verify_user
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
+
+    user_id = req.headers.get('authorisation')
+    if not verify_user(user_id):
+        return func.HttpResponse(status_code=401)
     
     data = None
     query = req.route_params
@@ -27,7 +18,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(body="Error: Invalid Query", status_code=500)
     else:
         try:
-            data = get_questionnaire(req.route_params)
+            data = get_questionnaire(req.route_params, user_id)
         except Exception as e:
             error = "Error: " + str(e)
             return func.HttpResponse(body=error, status_code=500)
