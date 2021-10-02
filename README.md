@@ -29,7 +29,7 @@ Currently, there is support for the following API's under the FHIR specification
   > Deletes the specified QuestionnaireResponse resource from the database.
 
 
-### Installing required modules to work with the 
+### Installing required modules to create your own functions and server 
 ```bash
 $ pip install -r requirements.txt
 ```
