@@ -25,9 +25,7 @@ Currently, there is support for the following API's under the FHIR specification
   > and returns the generated uid where it is stored. 
 6. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/{uid}
  > Returns the QuestionnaireResponse resource in JSON format specified by the uid.
-7. [GET] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse?name=&id=&title=
- > Returns the list of QuestionnaireResponse resources matching the query in JSON format.
-8. [DELETE] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/{uid}
+7. [DELETE] https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/{uid}
   > Deletes the specified QuestionnaireResponse resource from the database.
 
 
