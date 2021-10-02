@@ -1,7 +1,6 @@
 import logging
 import azure.functions as func
 import pyodbc
-import requests 
 import json
 import urllib
 import sqlalchemy 

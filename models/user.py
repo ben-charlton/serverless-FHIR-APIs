@@ -21,7 +21,8 @@ class User(BaseModel):
         #self.domain_name = None
 
 
-    def verify(self, domain, id):
+    # verify with domain later
+    def verify(self, id, domain=None):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
