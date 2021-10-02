@@ -158,7 +158,7 @@ class QuestionnaireResponse(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if attribute.value == None:
+            if attribute.value == None or key == "user_id" or key == "uid":
                 continue
             if key == "item":
                 result["item"] = json.loads(self._build_item_list(attribute.value))

@@ -159,7 +159,7 @@ class Questionnaire(BaseModel, object):
         for attribute in mapper.attrs:
             sstart_time = time.time()        
             key = attribute.key
-            if attribute.value == None or key == "uid":
+            if attribute.value == None or key == "uid" or key == "user_id":
                 continue
             if key == "item":
                 start_time = time.time()
