@@ -8,6 +8,7 @@ import uuid
 import logging
 import time
 import os
+from models.user import User
 
 BaseModel = declarative_base(name='BaseModel')
 
@@ -27,8 +28,8 @@ class QuestionnaireResponse(BaseModel, object):
     user_id = Column(String)
     text = Column(String)
     identifier = Column(String)
-    #basedOn = relationship("Reference")
-    #partOf = relationship("Reference")
+    basedOn = Column(String)
+    partOf = Column(String)
     questionnaire = Column(String)
     status = Column(String)
     subject = Column(String)
@@ -48,8 +49,8 @@ class QuestionnaireResponse(BaseModel, object):
         self.text = None
         self.contained = []
         self.identifier = None
-        #self.basedOn = None
-        #self.partOf = None
+        self.basedOn = None
+        self.partOf = None
         self.questionnaire = None
         self.status = None  
         self.subject = None
@@ -64,9 +65,10 @@ class QuestionnaireResponse(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
+        VALID_ELEMENTS = ["id", "status", "authored"]
         self.user_id = user_id
         for key in json_dict:
-            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
+            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -81,7 +83,10 @@ class QuestionnaireResponse(BaseModel, object):
                     contained_item.update(self.uid, entry)
                     self.contained.append(contained_item)
             else:
-                setattr(self, key, json_dict[key])
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])
+                else:
+                    raise Exception("JSON object must be a QuestionnaireResponse resource")
         return
 
 
@@ -96,13 +101,16 @@ class QuestionnaireResponse(BaseModel, object):
             BaseModel.metadata.create_all(engine)
             session = Session(engine)
             session.begin()
+            user = session.query(User).filter_by(user_id=self.user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             session.add(self)
             self._save_child_elements(session)
             session.commit()
             session.close()
             return return_uid
         except Exception as e:
-            return str(e)
+            raise Exception(str(e))
 
 
     ### Takes in the query parameters from the GET request
@@ -112,6 +120,9 @@ class QuestionnaireResponse(BaseModel, object):
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
+            user = session.query(User).filter_by(user_id=user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             #kwargs = {param : value}
             if 'uid' in query.keys():
                 retrieved_response = session.query(QuestionnaireResponse).filter_by(**query, user_id=user_id).one()
@@ -126,13 +137,16 @@ class QuestionnaireResponse(BaseModel, object):
             session.close()
             return retrieved_json
         except Exception as e:
-            return str(e)
+            raise Exception(str(e))
 
     def delete(self, uid):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
+            user = session.query(User).filter_by(user_id=user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             session.query(Contained).filter(Contained.response_id==uid).delete()
             session.query(QuestionnaireResponseItem).filter(QuestionnaireResponseItem.response_id==uid).delete()
             session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid).delete()
@@ -140,7 +154,7 @@ class QuestionnaireResponse(BaseModel, object):
             session.close()
             return True
         except Exception as e:
-            return e
+            raise Exception(str(e))
 
     ### Saves all child elements associated with the Questionnaire
     ### by recursively adding all items and codes.
@@ -162,7 +176,7 @@ class QuestionnaireResponse(BaseModel, object):
                 continue
             if key == "item":
                 result["item"] = json.loads(self._build_item_list(attribute.value))
-            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text":
+            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf":
                 result[key] = json.loads(getattr(self, key))
             elif key == "contained":
                 cont_list = []
@@ -334,6 +348,7 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
         self.item = []
 
     def update_with_dict(self, json_dict, response_id, item_id, answer_counter=None):
+        VALID_ELEMENTS = ["valueBoolean", "valueDecimal", "valueInteger", "valueDate", "valueDateTime", "valueTime", "valueString", "valueUri"]
         self.item_id = item_id
         self.answer_counter = answer_counter
         for key in json_dict:
@@ -346,7 +361,10 @@ class QuestionnaireResponseItemAnswer(BaseModel, object):
                     new_item.update_with_dict(single_item_dict, response_id, item_id, answer_counter)
                     self.item.append(new_item)  
             else:
-                setattr(self, key, json_dict[key])
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])
+                else:
+                    raise Exception("JSON object must be a QuestionnaireResponse resource")
         return
 
     def to_dict(self):
@@ -398,6 +416,7 @@ class QuestionnaireResponseItem(BaseModel, object):
         self.answer_id = None
 
     def update_with_dict(self, item_dict, response_id, parent_id=None, answer_id=None):
+        VALID_ELEMENTS = ["linkId", "definition", "text"]
         self.response_id = response_id
         self.parent_id = parent_id
         self.answer_id = answer_id
@@ -417,7 +436,10 @@ class QuestionnaireResponseItem(BaseModel, object):
                     new_item.update_with_dict(single_item_dict, response_id, item_dict["linkId"])
                     self.item.append(new_item)  
             else:
-                setattr(self, key, item_dict[key])
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, item_dict[key])
+                else:
+                    raise Exception("JSON object must be a QuestionnaireResponse resource")
         return
 
     def to_dict(self):

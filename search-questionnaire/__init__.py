@@ -3,7 +3,6 @@ from models.api import get_questionnaire
 import azure.functions as func
 import json
 import logging
-from models.api import verify_user
 
 def validate_params(params):
     for key in params.keys():
@@ -18,8 +17,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
     
     user_id = req.headers.get('authorisation')
-    if not verify_user(user_id):
-        return func.HttpResponse(status_code=401)
+
 
     if validate_params(req.params):
         data = None

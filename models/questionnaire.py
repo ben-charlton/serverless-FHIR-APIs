@@ -10,8 +10,11 @@ import uuid
 import time
 import os
 import logging
+from models.user import User
 
 BaseModel = declarative_base(name='BaseModel')
+
+
 
 ### QUESTIONNAIRE CLASS DEFINITION
 ### This is the ORM mapped class that is used to create
@@ -31,6 +34,7 @@ class Questionnaire(BaseModel, object):
     url = Column(String)
     name = Column(String)
     title = Column(String)
+    subjectType = Column(String)
     status = Column(String)
     date = Column(String)
     publisher = Column(String)
@@ -46,6 +50,7 @@ class Questionnaire(BaseModel, object):
         self.id = None
         self.user_id = None
         self.text = None
+        self.subjectType = None
         self.url = None
         self.name = None 
         self.title = None
@@ -62,6 +67,7 @@ class Questionnaire(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
+        VALID_ELEMENTS = ["id", "url", "name", "status", "date", "publisher", "description", "purpose", "copyright", "resourceType", "title"]
         self.user_id = user_id
         for key in json_dict:
             if key == "code":
@@ -70,7 +76,7 @@ class Questionnaire(BaseModel, object):
                     new_item = Coding()
                     new_item.update_with_dict(code_dict)
                     self.code.append(new_item)
-            elif key == "text":
+            elif key == "text" or key == "subjectType":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -79,7 +85,10 @@ class Questionnaire(BaseModel, object):
                     new_item.update_with_dict(item_dict, self.uid, None)
                     self.item.append(new_item)
             else:
-                setattr(self, key, json_dict[key])
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])
+                else:
+                    raise Exception("JSON object must be a Questionnaire resource")
         return
 
     ### Connects to the database given the authorised connection string
@@ -93,14 +102,17 @@ class Questionnaire(BaseModel, object):
             BaseModel.metadata.create_all(engine)
             session = Session(engine)
             session.begin()
+            user = session.query(User).filter_by(user_id=self.user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             session.add(self)
             self._save_child_elements(session)
             session.commit()
             session.close()
             return return_uid
         except Exception as e:
-            print(e)
-            return False
+            raise Exception(e)
+            
 
 
     ### Takes in the query parameters from the GET request
@@ -110,6 +122,9 @@ class Questionnaire(BaseModel, object):
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
+            user = session.query(User).filter_by(user_id=user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             #kwargs = {param : value}
             if 'uid' in query.keys():
                 retrieved_questionnaire = session.query(Questionnaire).filter_by(**query, user_id=user_id).one()
@@ -124,20 +139,23 @@ class Questionnaire(BaseModel, object):
             session.close()
             return retrieved_json
         except Exception as e:
-            return str(e)
+            raise Exception(str(e))
 
-    def delete(self, uid):
+    def delete(self, uid, user_id):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
+            user = session.query(User).filter_by(user_id=user_id).first()
+            if (user is None):
+                raise Exception("User not found")
             session.query(QuestionnaireItem).filter(QuestionnaireItem.quid==uid).delete()
             session.query(Questionnaire).filter(Questionnaire.uid==uid).delete()
             session.commit()
             session.close()
             return True
         except Exception as e:
-            return e
+            raise Exception(str(e))
 
 
     ### Saves all child elements associated with the Questionnaire
@@ -155,14 +173,11 @@ class Questionnaire(BaseModel, object):
         result = OrderedDict()
         start_time = time.time()     
         mapper = inspect(self)
-        #logging.info("--- inspection time %s seconds ---" % (time.time() - start_time))
-        for attribute in mapper.attrs:
-            sstart_time = time.time()        
+        for attribute in mapper.attrs:   
             key = attribute.key
             if attribute.value == None or key == "uid" or key == "user_id":
                 continue
             if key == "item":
-                start_time = time.time()
                 result["item"] = self._build_item_list(attribute.value)
             elif key == "text":
                 result["text"] = json.loads(getattr(self, key))
@@ -174,8 +189,7 @@ class Questionnaire(BaseModel, object):
                     result[key] = code_list
             else:
                 result[key] = getattr(self, key)
-            #logging.info('--attribute here is %s--' % key)
-            #logging.info("--- time for is %s seconds ---" % (time.time() - sstart_time))
+
         return result
    
    
@@ -189,9 +203,7 @@ class Questionnaire(BaseModel, object):
     ### to be returned 
     def _build_item_list(self, list_of_items):
 
-        start_time = time.time()
         list_of_dicts = self._item_to_dict(list_of_items)
-        #logging.info("--- building dicts takes %s seconds ---" % (time.time() - start_time))
         parent_list = []
         nesting_check = 0
 
@@ -201,7 +213,6 @@ class Questionnaire(BaseModel, object):
             else:
                 parent_list.append(entry)
             entry["item"] = []
-        start_time = time.time()
         while (nesting_check == 1):
             nesting_check = 0
             for item1 in list_of_dicts:
@@ -210,7 +221,6 @@ class Questionnaire(BaseModel, object):
                         item1["parent_id"] = None
                         item2["item"].append(item1)
                         nesting_check = 1
-        #logging.info("--- building list nesting loops is %s seconds ---" % (time.time() - start_time))
 
         for entry in list_of_dicts:
             del entry["parent_id"]
@@ -280,11 +290,15 @@ class QuestionnaireItemInitial(BaseModel,object):
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["valueBoolean", "valueDate", "valueTime", "valueString", "valueCoding", "valueInteger", "valueDecimal"]
         for key in json_dict:
             if key == "valueCoding":
                 setattr(self, key, json.dumps(json_dict[key]))      
             else:
-                setattr(self, key, json_dict[key])      
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])    
+                else:  
+                    raise Exception("JSON object must be a Questionnaire resource")
         return
     
     def _save(self, session):
@@ -331,11 +345,15 @@ class QuestionnaireItemAnswerOption(BaseModel, object):
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["valueInteger", "valueDate", "valueTime", "valueString", "valueCoding", "initialSelected"]
         for key in json_dict:
             if key == "valueCoding":
                 setattr(self, key, json.dumps(json_dict[key]))      
             else:
-                setattr(self, key, json_dict[key])       
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])      
+                else:
+                    raise Exception("JSON object must be a Questionnaire resource") 
         return
 
     def _save(self, session):
@@ -379,8 +397,12 @@ class Coding(BaseModel, object):
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["system", "version", "code", "display", "userSelected"]
         for key in json_dict:
-            setattr(self, key, json_dict[key])
+            if key in VALID_ELEMENTS:
+                setattr(self, key, json_dict[key])
+            else:
+                raise Exception("JSON object must be a Questionnaire resource")
         return
 
     def _save(self, session):
@@ -419,9 +441,7 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
     def to_dict(self):
         result = OrderedDict()
         mapper = inspect(self)
-        #logging.info('--- for enable to dict---')
         for attribute in mapper.attrs:
-            start = time.time()
             key = attribute.key
             if key == "iid" or key == "id":
                 pass
@@ -430,15 +450,18 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
             else:
                 if getattr(self, key) is not None:
                     result[key] =  getattr(self, key)
-        #logging.info("--- takes %s seconds ---" % (time.time() - start))
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["question", "operator", "answerBoolean", "answerInteger", "answerDate", "answerDateTime", "answerString", "answerCoding"]
         for key in json_dict:
             if key == "answerCoding":
                 self.answerCoding = json.dumps(json_dict[key])
             else:
-                setattr(self, key, json_dict[key])      
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])      
+                else:
+                    raise Exception("JSON object must be a Questionnaire resource")
         return
     
     def _save(self, session):
@@ -493,6 +516,7 @@ class QuestionnaireItem(BaseModel, object):
     def update_with_dict(self, item_dict, quid, parent_id=None):
         self.quid = quid
         self.parent_id = parent_id
+        VALID_ELEMENTS = ["linkId", "definition", "prefix", "text", "type", "enableBehavior", "required", "repeats", "readOnly", "maxLength", "answerValueSet"]
         for key in item_dict:
             if key == "enableWhen":
                 enable_list = item_dict[key]
@@ -525,8 +549,10 @@ class QuestionnaireItem(BaseModel, object):
                     code.update_with_dict(entry)
                     self.code.append(code)
             else:
-                setattr(self, key, item_dict[key])
-                
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, item_dict[key])
+                else:
+                    raise Exception("JSON object must be a Questionnaire resource")
         return
 
     def to_dict(self):

@@ -36,13 +36,13 @@ def delete_questionnaireResponse(uid, user_id):
     return result
 
 # should take domain name in future
-def register_user():
+def register_user(token):
     user = User()
-    uid = user.save()
+    uid = user.save(token)
     return uid
 
-def verify_user(user_id):
+def get_user(token):
     user = User()
-    verification = user.verify(user_id)
-    return verification
+    uid = user.load(token)
+    return uid
 

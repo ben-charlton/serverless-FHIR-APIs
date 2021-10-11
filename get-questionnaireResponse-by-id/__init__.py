@@ -1,14 +1,13 @@
 import logging
 from models.api import get_questionnaireResponse
 import azure.functions as func
-from models.api import verify_user
+
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
     user_id = req.headers.get('authorisation')
-    if not verify_user(user_id):
-        return func.HttpResponse(status_code=401)
+
 
     data = None
     query = req.route_params

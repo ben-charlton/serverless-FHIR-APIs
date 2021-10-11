@@ -13,32 +13,30 @@ class User(BaseModel):
 
     ### The ORM mapping for the object 
     __tablename__ = "User"
-    user_id = Column(String(100), primary_key=True)
-    domain_name = Column(String) 
+    user_id = Column(String(200))
+    token = Column(String(200), primary_key=True) 
 
     def __init__(self):
         self.user_id = uuid.uuid4().hex
-        #self.domain_name = None
+        self.token = None
 
 
-    # verify with domain later
-    def verify(self, id, domain=None):
+    def load(self, token):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
             session = Session(engine)
-            #domain_name=domain,
-            user = session.query(User).filter_by(user_id=id).first()
+            user = session.query(User).filter_by(token=token).first()
             if (user is not None):
-                return True
-            else: 
-                return False
+                return user.user_id
+            else:
+                raise Exception("User does not exist for given token")
         except Exception as e:
-            return str(e)
+            raise Exception(str(e))
 
 
-    # should take domain in future
-    def save(self):
+    def save(self, token):
+        self.token = token
         connect_str = self._get_conn_string()
         try:
             return_uid = self.user_id
@@ -50,8 +48,8 @@ class User(BaseModel):
             session.commit()
             session.close()
             return return_uid
-        except Exception:
-            return None
+        except Exception as e:
+            raise Exception(str(e))
 
 
     def _get_conn_string(self):
