@@ -31,6 +31,9 @@ class Questionnaire(BaseModel, object):
     id = Column(String) 
     user_id = Column(String)
     text = Column(String)
+    contained = Column(String)
+    meta = Column(String)
+    Identifier = Column(String)
     url = Column(String)
     name = Column(String)
     title = Column(String)
@@ -50,6 +53,9 @@ class Questionnaire(BaseModel, object):
         self.id = None
         self.user_id = None
         self.text = None
+        self.contained = None
+        self.meta = None
+        self.Identifier = None
         self.subjectType = None
         self.url = None
         self.name = None 
@@ -76,7 +82,7 @@ class Questionnaire(BaseModel, object):
                     new_item = Coding()
                     new_item.update_with_dict(code_dict)
                     self.code.append(new_item)
-            elif key == "text" or key == "subjectType":
+            elif key == "text" or key == "subjectType" or key == "Identifier" or key == "meta" or key == "contained":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -112,6 +118,7 @@ class Questionnaire(BaseModel, object):
             return return_uid
         except Exception as e:
             raise Exception(e)
+            
             
 
 
@@ -179,7 +186,7 @@ class Questionnaire(BaseModel, object):
                 continue
             if key == "item":
                 result["item"] = self._build_item_list(attribute.value)
-            elif key == "text":
+            elif key == "text" or key == "subjectType" or key == "Identifier" or key == "meta" or key == "contained":
                 result["text"] = json.loads(getattr(self, key))
             elif key == "code":
                 code_list = []
