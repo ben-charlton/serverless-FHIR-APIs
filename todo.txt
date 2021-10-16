@@ -1,0 +1,22 @@
+
+FOR ALL RESOURCE ENDPOINTS:
+    1. successful request -> 200 
+    2. successful request but no resource found -> 204 
+    3. invalid authentication -> 401
+        - missing auth header
+        - user not found
+    4. invalid json -> 400
+        - resource with wrong json field
+        - missing json body 
+    
+
+
+FOR USER ENDPOINTS:
+    1. successful request -> 200 
+    2. successful request but no resource found -> 204 
+    3. invalid authentication -> 401
+        - missing auth header
+        - user not found
+    4. invalid json -> 400
+        - resource with wrong json field
+        - missing json body 

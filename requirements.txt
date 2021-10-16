@@ -5,7 +5,7 @@
 azure-functions
 pyodbc
 SQLAlchemy
-jsonlint
+requests
 
 # note had to brew install unixodbc for pyodbc to work
 # also had to brew install msodbcsql mssql-tools
