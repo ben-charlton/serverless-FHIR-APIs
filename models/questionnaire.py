@@ -35,6 +35,8 @@ class Questionnaire(BaseModel, object):
     meta = Column(String)
     Identifier = Column(String)
     url = Column(String)
+    extension = Column(String)
+    version = Column(String)
     name = Column(String)
     title = Column(String)
     subjectType = Column(String)
@@ -55,7 +57,9 @@ class Questionnaire(BaseModel, object):
         self.text = None
         self.contained = None
         self.meta = None
+        self.version = None
         self.Identifier = None
+        self.extension = None
         self.subjectType = None
         self.url = None
         self.name = None 
@@ -73,7 +77,7 @@ class Questionnaire(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
-        VALID_ELEMENTS = ["id", "url", "name", "status", "date", "publisher", "description", "purpose", "copyright", "resourceType", "title"]
+        VALID_ELEMENTS = ["id", "url", "name", "status", "date", "publisher", "description", "purpose", "copyright", "resourceType", "title", "version"]
         self.user_id = user_id
         for key in json_dict:
             if key == "code":
@@ -82,7 +86,7 @@ class Questionnaire(BaseModel, object):
                     new_item = Coding()
                     new_item.update_with_dict(code_dict)
                     self.code.append(new_item)
-            elif key == "text" or key == "subjectType" or key == "Identifier" or key == "meta" or key == "contained":
+            elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -186,8 +190,8 @@ class Questionnaire(BaseModel, object):
                 continue
             if key == "item":
                 result["item"] = self._build_item_list(attribute.value)
-            elif key == "text" or key == "subjectType" or key == "Identifier" or key == "meta" or key == "contained":
-                result["text"] = json.loads(getattr(self, key))
+            elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
+                result[key] = json.loads(getattr(self, key))
             elif key == "code":
                 code_list = []
                 for entry in attribute.value:
@@ -489,6 +493,7 @@ class QuestionnaireItem(BaseModel, object):
     code = relationship("Coding", cascade="all, delete", passive_deletes=True)
     prefix = Column(String)
     text = Column(String)
+    extension = Column(String)
     type = Column(String)
     enableWhen = relationship("QuestionnaireItemEnableWhen", cascade="all, delete", passive_deletes=True)
     enableBehavior = Column(String)
@@ -508,6 +513,7 @@ class QuestionnaireItem(BaseModel, object):
         self.code = []
         self.prefix = None
         self.text = None
+        self.extension = None
         self.type = None
         self.enableWhen = []
         self.enableBehavior = None
@@ -555,6 +561,8 @@ class QuestionnaireItem(BaseModel, object):
                     code = Coding()
                     code.update_with_dict(entry)
                     self.code.append(code)
+            elif key == "extension":
+                setattr(self, key, json.dumps(item_dict[key], indent=4))
             else:
                 if key in VALID_ELEMENTS:
                     setattr(self, key, item_dict[key])
@@ -573,7 +581,9 @@ class QuestionnaireItem(BaseModel, object):
                 result[key] = getattr(self, key)
             else:
                 if getattr(self, key) is not None:
-                    if isinstance(getattr(self, key), list):
+                    if key == "extension":
+                        result[key] = json.loads(getattr(self, key))
+                    elif isinstance(getattr(self, key), list):
                         if len(getattr(self, key)) > 0:
                             result_list = []
                             for entry in getattr(self, key):
