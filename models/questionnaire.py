@@ -161,7 +161,7 @@ class Questionnaire(BaseModel, object):
             if (user is None):
                 raise Exception("User not found")
             session.query(QuestionnaireItem).filter(QuestionnaireItem.quid==uid).delete()
-            res = session.query(Questionnaire).filter(Questionnaire.uid==uid).fist()
+            res = session.query(Questionnaire).filter(Questionnaire.uid==uid).first()
             if res:
                 res.delete()
             else:

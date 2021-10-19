@@ -17,7 +17,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         if (str(e) == 'No resource with matching uid found'):
             return func.HttpResponse(body=str(e), status_code=400)
-        return func.HttpResponse(body=str(e), status_code=500)
+        elif (str(e) == 'User not found'):
+            return func.HttpResponse(body=str(e), status_code=400)
+        return func.HttpResponse(body=str(e), status_code=400)
 
     if (res==True):
         return func.HttpResponse(body="Successfully deleted resource", status_code=200)
