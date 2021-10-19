@@ -14,18 +14,23 @@ def validate_params(params):
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
-    
-    user_id = req.headers.get('authorisation')
+
+    error = None
+    data = None
+
+    try: 
+        user_id = req.headers.get('authorisation')
+    except:
+        return func.HttpResponse(body="Invalid authorisation supplied", status_code=400)
 
 
     if validate_params(req.params):
-        data = None
         try:
             data = get_questionnaire(req.params, user_id)
         except Exception as e:
             error = "Error: " + str(e)
-            return func.HttpResponse(body=error, status_code=500)
-        return func.HttpResponse(body=data, headers={"content-type": "application/json"}, status_code=200)
-    else:
-        return func.HttpResponse(body="Error: Invalid Query", status_code=500)
+            if (error == "Error: No row was found when one was required"):
+                return func.HttpResponse(status_code=204)
+            return func.HttpResponse(body=error, status_code=400)
+    return func.HttpResponse(body="Invalid Query Parameters", status_code=400)
+

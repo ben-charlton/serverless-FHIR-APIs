@@ -7,12 +7,15 @@ from models.api import get_questionnaire
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
 
-    user_id = req.headers.get('authorisation')
+    data = None 
+    query = req.route_params
+
+    try: 
+        user_id = req.headers.get('authorisation')
+    except:
+        return func.HttpResponse(body="Invalid authorisation supplied", status_code=400)
 
     
-    data = None
-    query = req.route_params
-    logging.info(f'query is {query}')
     if len(query.keys()) != 1 and 'uid' not in query.keys():
         return func.HttpResponse(body="Error: Invalid Query", status_code=400)
     else:
@@ -25,9 +28,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 return func.HttpResponse(status_code=204)
             return func.HttpResponse(body=error, status_code=400)
     return func.HttpResponse(body="error", status_code=500)
-        
-    
-
         
 
    

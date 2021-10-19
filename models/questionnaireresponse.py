@@ -65,7 +65,7 @@ class QuestionnaireResponse(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
-        VALID_ELEMENTS = ["id", "status", "authored"]
+        VALID_ELEMENTS = ["id", "status", "authored", "resourceType"]
         self.user_id = user_id
         for key in json_dict:
             if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf":
@@ -139,7 +139,7 @@ class QuestionnaireResponse(BaseModel, object):
         except Exception as e:
             raise Exception(str(e))
 
-    def delete(self, uid):
+    def delete(self, uid, user_id):
         connect_str = self._get_conn_string()
         try:
             engine = create_engine(connect_str)
@@ -149,7 +149,11 @@ class QuestionnaireResponse(BaseModel, object):
                 raise Exception("User not found")
             session.query(Contained).filter(Contained.response_id==uid).delete()
             session.query(QuestionnaireResponseItem).filter(QuestionnaireResponseItem.response_id==uid).delete()
-            session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid).delete()
+            res = session.query(QuestionnaireResponse).filter(QuestionnaireResponse.uid==uid).first()
+            if res:
+                res.delete()
+            else:
+                raise Exception("No resource with matching uid found")
             session.commit()
             session.close()
             return True
