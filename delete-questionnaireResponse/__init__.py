@@ -13,7 +13,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(body="Invalid authorisation supplied", status_code=400)
 
     try:
-        res = delete_questionnaire(req.route_params.get('uid'), user_id)
+        res = delete_questionnaireResponse(req.route_params.get('uid'), user_id)
     except Exception as e:
         if (str(e) == 'No resource with matching uid found'):
             return func.HttpResponse(body=str(e), status_code=400)

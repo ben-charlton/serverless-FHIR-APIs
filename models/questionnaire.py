@@ -160,11 +160,9 @@ class Questionnaire(BaseModel, object):
             user = session.query(User).filter_by(user_id=user_id).first()
             if (user is None):
                 raise Exception("User not found")
-            session.query(QuestionnaireItem).filter(QuestionnaireItem.quid==uid).delete()
-            res = session.query(Questionnaire).filter(Questionnaire.uid==uid).first()
-            if res:
-                res.delete()
-            else:
+            z = session.query(QuestionnaireItem).filter(QuestionnaireItem.quid==uid).delete()
+            r = session.query(Questionnaire).filter(Questionnaire.uid==uid).delete()
+            if (r == 0):
                 raise Exception("No resource with matching uid found")
             session.commit()
             session.close()

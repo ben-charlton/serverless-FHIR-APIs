@@ -66,7 +66,7 @@ class TestDeleteQuestionnaireResponse(unittest.TestCase):
         Test that it works as promised with resource 4
         """ 
         print("---TESTING SUCCESSFUL RESOURCE 4 ---")
-        response_file = open('json/responses/small.json', 'rb')
+        response_file = open('json/responses/test4.json', 'rb')
         response = response_file.read().decode("utf-8") 
         r = requests.post('https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse', headers = TEST_AUTH, data=response)
         uid = str(r.text)
