@@ -121,7 +121,7 @@ class Questionnaire(BaseModel, object):
             session.close()
             return return_uid
         except Exception as e:
-            raise Exception(e)
+            raise Exception(str(e))
             
             
 
@@ -183,25 +183,27 @@ class Questionnaire(BaseModel, object):
     ### converts the Questionnaire object into a dictionary 
     ### that can then be JSONified and returned through a (GET)
     def _to_dict(self):
-        result = OrderedDict()
-        start_time = time.time()     
-        mapper = inspect(self)
-        for attribute in mapper.attrs:   
-            key = attribute.key
-            if attribute.value == None or key == "uid" or key == "user_id":
-                continue
-            if key == "item":
-                result["item"] = self._build_item_list(attribute.value)
-            elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
-                result[key] = json.loads(getattr(self, key))
-            elif key == "code":
-                code_list = []
-                for entry in attribute.value:
-                    code_list.append(entry.to_dict())
-                if len(code_list) > 0:
-                    result[key] = code_list
-            else:
-                result[key] = getattr(self, key)
+        try:
+            result = OrderedDict() 
+            mapper = inspect(self)
+            for attribute in mapper.attrs:   
+                key = attribute.key
+                if attribute.value == None or key == "uid" or key == "user_id":
+                    continue
+                if key == "item":
+                    result[key] = self._build_item_list(attribute.value)
+                elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
+                    result[key] = json.loads(getattr(self, key))
+                elif key == "code":
+                    code_list = []
+                    for entry in attribute.value:
+                        code_list.append(entry.to_dict())
+                    if len(code_list) > 0:
+                        result[key] = code_list
+                else:
+                    result[key] = getattr(self, key)
+        except Exception as e:
+            raise Exception(str(e))
 
         return result
    
@@ -220,25 +222,30 @@ class Questionnaire(BaseModel, object):
         parent_list = []
         nesting_check = 0
 
-        for entry in list_of_dicts:
-            if entry["parent_id"] != None:
-                nesting_check = 1
-            else:
-                parent_list.append(entry)
-            entry["item"] = []
-        while (nesting_check == 1):
-            nesting_check = 0
-            for item1 in list_of_dicts:
-                for item2 in list_of_dicts:
-                    if item1["parent_id"] == item2["linkId"] and item1["parent_id"] is not None:
-                        item1["parent_id"] = None
-                        item2["item"].append(item1)
-                        nesting_check = 1
 
-        for entry in list_of_dicts:
-            del entry["parent_id"]
-            if len(entry["item"]) == 0:
-                del entry["item"]
+        try:
+            for entry in list_of_dicts:
+                if entry["parent_id"] != None:
+                    nesting_check = 1
+                else:
+                    parent_list.append(entry)
+                entry["item"] = []
+            while (nesting_check == 1):
+                nesting_check = 0
+                for item1 in list_of_dicts:
+                    for item2 in list_of_dicts:
+                        if item1["parent_id"] == item2["linkId"] and item1["parent_id"] is not None:
+                            item1["parent_id"] = None
+                            item2["item"].append(item1)
+                            nesting_check = 1
+
+            for entry in list_of_dicts:
+                del entry["parent_id"]
+                if len(entry["item"]) == 0:
+                    del entry["item"]
+        except Exception as e:
+            raise Exception(str(e))
+
         return parent_list
 
     ### create the connection string for the database
@@ -255,9 +262,7 @@ class Questionnaire(BaseModel, object):
     def _item_to_dict(item_list):
         dict_list = []
         for item in item_list:
-            start = time.time()
             dict_to_add = item.to_dict()
-            logging.info("--- each dict takes %s seconds ---" % (time.time() - start))
             dict_list.append(dict_to_add)
         return dict_list
 
@@ -458,11 +463,12 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
             key = attribute.key
             if key == "iid" or key == "id":
                 pass
-            elif key == "answerCoding":
-                result[key] = json.loads(attribute.value)
             else:
                 if getattr(self, key) is not None:
-                    result[key] =  getattr(self, key)
+                    if key == "answerCoding":
+                        result[key] = json.loads(attribute.value)
+                    else:
+                        result[key] =  getattr(self, key)
         return result
 
     def update_with_dict(self, json_dict):
@@ -584,15 +590,17 @@ class QuestionnaireItem(BaseModel, object):
             else:
                 if getattr(self, key) is not None:
                     if key == "extension":
-                        result[key] = json.loads(getattr(self, key))
+                        result[key] = json.loads(getattr(self, key))    
                     elif isinstance(getattr(self, key), list):
                         if len(getattr(self, key)) > 0:
                             result_list = []
                             for entry in getattr(self, key):
                                 result_list.append(entry.to_dict())
                             result[key] = result_list
+                            
                     else:
                         result[key] = getattr(self, key)
+    
         return result
 
     def _save(self, session):

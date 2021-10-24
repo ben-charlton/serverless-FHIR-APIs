@@ -1,6 +1,6 @@
 from models.user import User
-from .questionnaireresponse import QuestionnaireResponse
-from .questionnaire import Questionnaire
+from models.questionnaireresponse import QuestionnaireResponse
+from models.questionnaire import Questionnaire
 
 
 def get_questionnaire(query, user_id):
