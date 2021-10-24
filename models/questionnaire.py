@@ -221,8 +221,7 @@ class Questionnaire(BaseModel, object):
         list_of_dicts = self._item_to_dict(list_of_items)
         parent_list = []
         nesting_check = 0
-
-
+        
         try:
             for entry in list_of_dicts:
                 if entry["parent_id"] != None:

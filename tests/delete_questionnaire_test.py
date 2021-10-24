@@ -83,7 +83,7 @@ class TestDeleteQuestionnaire(unittest.TestCase):
         """
         Test that it returns 400 when no resource to delete 
         """
-        print("---TESTING GET WITH NO RESOURCE FOUND ---")
+        print("---TESTING WITH NO RESOURCE FOUND ---")
         start = time.time()
         url = 'https://fhir-questionnaire-api.azurewebsites.net/api/questionnaireResponse/' + '77777777'
         r = requests.delete(url=url, headers = TEST_AUTH)

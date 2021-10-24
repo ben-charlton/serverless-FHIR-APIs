@@ -19,9 +19,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     data = None
 
     try: 
-        user_id = req.headers.get('authorisation')
+        user_id = req.headers.get('user')
     except:
-        return func.HttpResponse(body="Invalid authorisation supplied", status_code=400)
+        return func.HttpResponse(body="Invalid user id supplied", status_code=400)
 
 
     if validate_params(req.params):

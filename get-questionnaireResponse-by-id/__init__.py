@@ -9,9 +9,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     query = req.route_params
 
     try: 
-        user_id = req.headers.get('authorisation')
+        user_id = req.headers.get('user')
     except:
-        return func.HttpResponse(body="Invalid authorisation supplied", status_code=400)
+        return func.HttpResponse(body="Invalid user id supplied", status_code=400)
 
     
     if len(query.keys()) != 1 and 'uid' not in query.keys():
