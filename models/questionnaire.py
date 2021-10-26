@@ -37,6 +37,9 @@ class Questionnaire(BaseModel, object):
     url = Column(String)
     extension = Column(String)
     version = Column(String)
+    effectivePeriod = Column(String)
+    derivedFrom = Column(String)
+    useContext = Column(String)
     name = Column(String)
     title = Column(String)
     subjectType = Column(String)
@@ -57,6 +60,9 @@ class Questionnaire(BaseModel, object):
         self.text = None
         self.contained = None
         self.meta = None
+        self.effectivePeriod = None
+        self.derivedFrom = None
+        self.useContext = None
         self.version = None
         self.Identifier = None
         self.extension = None
@@ -77,7 +83,7 @@ class Questionnaire(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
-        VALID_ELEMENTS = ["id", "url", "name", "status", "date", "publisher", "description", "purpose", "copyright", "resourceType", "title", "version"]
+        VALID_ELEMENTS = ["id", "url", "name", "status", "date", "publisher", "description", "purpose", "copyright", "resourceType", "title", "version", "effectivePeriod"]
         self.user_id = user_id
         for key in json_dict:
             if key == "code":
@@ -86,7 +92,7 @@ class Questionnaire(BaseModel, object):
                     new_item = Coding()
                     new_item.update_with_dict(code_dict)
                     self.code.append(new_item)
-            elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
+            elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension" or key == "derivedFrom" or key == "useContext":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -192,7 +198,7 @@ class Questionnaire(BaseModel, object):
                     continue
                 if key == "item":
                     result[key] = self._build_item_list(attribute.value)
-                elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension":
+                elif key == "text" or key == "subjectType" or key == "identifier" or key == "meta" or key == "contained" or key == "extension" or key == "derivedFrom" or key == "useContext":
                     result[key] = json.loads(getattr(self, key))
                 elif key == "code":
                     code_list = []

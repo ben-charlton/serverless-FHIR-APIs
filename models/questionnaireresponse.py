@@ -28,6 +28,9 @@ class QuestionnaireResponse(BaseModel, object):
     user_id = Column(String)
     text = Column(String)
     identifier = Column(String)
+    meta = Column(String)
+    extension = Column(String)
+    implicitRules = Column(String)
     basedOn = Column(String)
     partOf = Column(String)
     questionnaire = Column(String)
@@ -49,6 +52,9 @@ class QuestionnaireResponse(BaseModel, object):
         self.text = None
         self.contained = []
         self.identifier = None
+        self.meta = None
+        self.extension = None
+        self.implicitRules = None
         self.basedOn = None
         self.partOf = None
         self.questionnaire = None
@@ -65,10 +71,10 @@ class QuestionnaireResponse(BaseModel, object):
     ### and fills the newly created object with the data,
     ### setting each attribute to the respective field in the JSON
     def update_with_json(self, json_dict, user_id):
-        VALID_ELEMENTS = ["id", "status", "authored", "resourceType"]
+        VALID_ELEMENTS = ["id", "status", "authored", "resourceType", "implicitRules"]
         self.user_id = user_id
         for key in json_dict:
-            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf":
+            if key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf" or key == "meta" or key == "extension":
                 setattr(self, key, json.dumps(json_dict[key], indent=4))
             elif key == "item":
                 items_list = json_dict[key]
@@ -178,7 +184,7 @@ class QuestionnaireResponse(BaseModel, object):
                 continue
             if key == "item":
                 result["item"] = json.loads(self._build_item_list(attribute.value))
-            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf":
+            elif key == "identifier" or key == "questionnaire" or key == "subject" or key == "encounter" or key == "source" or key == "author" or key == "text" or key == "basedOn" or key == "partOf"  or key == "meta" or key == "extension":
                 result[key] = json.loads(getattr(self, key))
             elif key == "contained":
                 cont_list = []
