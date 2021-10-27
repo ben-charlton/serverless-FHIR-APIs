@@ -5,8 +5,7 @@ import urllib
 import pyodbc
 import uuid
 import os
-
-BaseModel = declarative_base(name='BaseModel')
+from models.base import BaseModel
 
 ### USER CLASS DEFINITION
 class User(BaseModel):

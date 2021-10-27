@@ -2,11 +2,13 @@ from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, D
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
 from collections import OrderedDict
-from questionnaire import BaseModel
+import json
+from models.base import BaseModel
+
 class QuestionnaireItemEnableWhen(BaseModel,object):
     __tablename__ = "QuestionnaireItemEnableWhen"
     id = Column(Integer, primary_key=True)
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     question = Column(String)
     operator = Column(String)
     answerBoolean = Column(Boolean)
@@ -33,21 +35,26 @@ class QuestionnaireItemEnableWhen(BaseModel,object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "itemId" or key == "id":
+            if key == "iid" or key == "id":
                 pass
-            elif key == "answerCoding":
-                result[key] = json.loads(attribute.value)
             else:
                 if getattr(self, key) is not None:
-                    result[key] =  getattr(self, key)
+                    if key == "answerCoding":
+                        result[key] = json.loads(attribute.value)
+                    else:
+                        result[key] =  getattr(self, key)
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["question", "operator", "answerBoolean", "answerInteger", "answerDate", "answerDateTime", "answerString", "answerCoding"]
         for key in json_dict:
             if key == "answerCoding":
                 self.answerCoding = json.dumps(json_dict[key])
             else:
-                setattr(self, key, json_dict[key])      
+                if key in VALID_ELEMENTS:
+                    setattr(self, key, json_dict[key])      
+                else:
+                    raise Exception("JSON object must be a Questionnaire resource")
         return
     
     def _save(self, session):

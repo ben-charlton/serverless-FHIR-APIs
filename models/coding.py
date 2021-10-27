@@ -2,7 +2,9 @@ from sqlalchemy import Column, Integer, String, create_engine, Boolean, Float, D
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
 from collections import OrderedDict
-from questionnaire import BaseModel
+from models.base import BaseModel
+
+
 
 ### CODING CLASS DEFINITION
 ### This is the ORM mapped class that is used to create
@@ -11,8 +13,8 @@ class Coding(BaseModel, object):
     
     __tablename__ = "Coding"
     id = Column(Integer, primary_key=True)
-    questionnaireId = Column(String(450), ForeignKey('Questionnaire.id'))
-    itemId = Column(Integer, ForeignKey('QuestionnaireItem.id'))
+    quid = Column(String(100), ForeignKey('Questionnaire.uid', ondelete="cascade"))
+    iid = Column(Integer, ForeignKey('QuestionnaireItem.id', ondelete="cascade"))
     system = Column(String)
     version = Column(String)
     code = Column(String)
@@ -32,7 +34,7 @@ class Coding(BaseModel, object):
         mapper = inspect(self)
         for attribute in mapper.attrs:
             key = attribute.key
-            if key == "id" or key == "questionnaireId" or key == "itemId":
+            if key == "id" or key == "quid" or key == "iid":
                 pass
             else:
                 if getattr(self, key) is not None:
@@ -40,8 +42,12 @@ class Coding(BaseModel, object):
         return result
 
     def update_with_dict(self, json_dict):
+        VALID_ELEMENTS = ["system", "version", "code", "display", "userSelected"]
         for key in json_dict:
-            setattr(self, key, json_dict[key])
+            if key in VALID_ELEMENTS:
+                setattr(self, key, json_dict[key])
+            else:
+                raise Exception("JSON object must be a Questionnaire resource")
         return
 
     def _save(self, session):
