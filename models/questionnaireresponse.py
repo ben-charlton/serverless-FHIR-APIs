@@ -10,7 +10,7 @@ import time
 import os
 from models.user import User
 from models.base import BaseModel
-from models.responseanswer import QuestionnaireResponseItemAnswer
+from models.responseitem import QuestionnaireResponseItemAnswer
 from models.responseitem import QuestionnaireResponseItem
 from models.contained import Contained
 

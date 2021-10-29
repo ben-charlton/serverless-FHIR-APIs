@@ -252,7 +252,7 @@ class Questionnaire(BaseModel, object):
                 if len(entry["item"]) == 0:
                     del entry["item"]
         except Exception as e:
-            raise Exception(str(e) + "here")
+            raise Exception(str(e))
 
         return parent_list
 
