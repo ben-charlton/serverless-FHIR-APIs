@@ -29,8 +29,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             data = get_questionnaire(req.params, user_id)
         except Exception as e:
             error = "Error: " + str(e)
-            if (error == "Error: No row was found when one was required"):
-                return func.HttpResponse(status_code=204)
             return func.HttpResponse(body=error, status_code=400)
-    return func.HttpResponse(body="Invalid Query Parameters", status_code=400)
+        if len(data) == 2:
+            return func.HttpResponse(status_code=204)
+        return func.HttpResponse(body=data, status_code=200)
+    else:
+        return func.HttpResponse(body="Invalid Query Parameters", status_code=400)
 
